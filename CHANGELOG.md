@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.2](https://github.com/gnosisguild/zodiac-sdk/compare/v1.12.1...v1.12.2) (2026-08-18)
+
+
+### Bug Fixes
+
+* publish under the [@zodiaceco](https://github.com/zodiaceco) scope ([#44](https://github.com/gnosisguild/zodiac-sdk/issues/44)) ([ca2dd63](https://github.com/gnosisguild/zodiac-sdk/commit/ca2dd633722765b8d128389390c180533664a778))
+
 ## [1.12.1](https://github.com/gnosisguild/zodiac-sdk/compare/v1.12.0...v1.12.1) (2026-07-01)
 
 
