@@ -1,0 +1,54 @@
+name: OIDC diagnostic
+
+# Temporary. Reproduces exactly what npm's lib/utils/oidc.js does, but prints
+# the failure reason npm swallows at non-verbose loglevel. Publishes nothing.
+on:
+  push:
+    branches: [diag/oidc]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Toolchain
+        run: echo "node $(node -v) / npm $(npm -v)  (trusted publishing needs npm >= 11.5.1)"
+      - name: Request id-token and attempt npm exchange
+        run: |
+          set -euo pipefail
+          AUD="npm:registry.npmjs.org"
+          RESP=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                        -H "Accept: application/json" \
+                        "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${AUD}")
+          TOKEN=$(printf '%s' "$RESP" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>process.stdout.write((JSON.parse(d).value)||""))')
+          if [ -z "$TOKEN" ]; then echo "::error::could not obtain id-token"; printf '%s' "$RESP" | head -c 300; exit 1; fi
+
+          echo "::group::What GitHub asserts (token itself not printed)"
+          node -e '
+            const p=JSON.parse(Buffer.from(process.argv[1].split(".")[1],"base64").toString("utf8"));
+            for (const k of ["iss","aud","sub","repository","repository_owner","repository_visibility","workflow","workflow_ref","job_workflow_ref","ref","environment"])
+              console.log(k.padEnd(24), JSON.stringify(p[k]));
+          ' "$TOKEN"
+          echo "::endgroup::"
+
+          echo "::group::exchange for @zodiaceco/sdk (the one failing)"
+          CODE=$(curl -sS -o /tmp/x.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@zodiaceco%2fsdk" || true)
+          echo "HTTP $CODE"
+          node -e 'const s=require("fs").readFileSync("/tmp/x.json","utf8");try{const j=JSON.parse(s);if(j.token)j.token="<redacted len "+j.token.length+">";console.log(JSON.stringify(j,null,2))}catch(e){console.log(s.slice(0,400))}'
+          echo "::endgroup::"
+
+          echo "::group::control: @zodiaceco/api-types (works, but from the other repo)"
+          CODE2=$(curl -sS -o /tmp/y.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@zodiaceco%2fapi-types" || true)
+          echo "HTTP $CODE2"
+          node -e 'const s=require("fs").readFileSync("/tmp/y.json","utf8");try{const j=JSON.parse(s);if(j.token)j.token="<redacted>";console.log(JSON.stringify(j,null,2))}catch(e){console.log(s.slice(0,400))}'
+          echo "::endgroup::"
