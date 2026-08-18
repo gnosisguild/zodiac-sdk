@@ -1,7 +1,7 @@
 {
   "name": "@zodiaceco/sdk",
   "version": "1.12.1",
-  "author": "Gnosis Guild",
+  "author": "Zodiac Labs GmbH",
   "license": "LGPL-3.0-only",
   "homepage": "https://github.com/gnosisguild/zodiac-sdk",
   "packageManager": "bun@1.3.12",
@@ -32,7 +32,7 @@
     "LICENSE"
   ],
   "bin": {
-    "zodiac": "./dist/cli.mjs"
+    "zodiac": "dist/cli.mjs"
   },
   "scripts": {
     "clean": "rimraf dist",
