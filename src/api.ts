@@ -6,7 +6,7 @@ import type {
   ApiError as ApiErrorResponse,
   ListAccountsResult,
   ListUsersResult,
-} from '@zodiac-os/api-types'
+} from '@zodiaceco/api-types'
 import assert from 'assert'
 import { UUID } from 'crypto'
 

@@ -116,6 +116,11 @@ export const pullOrg = async (config: ResolvedConfig) => {
     const isNodeType = (type: string): type is NodeType =>
       type === 'SAFE' || type === 'ROLES' || type === 'DELAY'
 
+    // Accounts we only know by address — Safe owners, external role
+    // members, route targets — carry no label. They can't key a
+    // label-addressed namespace, so they stay out of the codegen.
+    // Vault entries always carry one.
+
     // Count labels per type so we only suffix within-type collisions.
     const labelCountByType: Record<NodeType, Map<string, number>> = {
       SAFE: new Map(),
@@ -123,22 +128,24 @@ export const pullOrg = async (config: ResolvedConfig) => {
       DELAY: new Map(),
     }
     for (const account of ws.accounts) {
-      if (!isNodeType(account.type)) continue
+      const { label } = account
+      if (label == null || !isNodeType(account.type)) continue
       const counts = labelCountByType[account.type]
-      counts.set(account.label, (counts.get(account.label) ?? 0) + 1)
+      counts.set(label, (counts.get(label) ?? 0) + 1)
     }
 
     for (const account of ws.accounts) {
-      if (!isNodeType(account.type)) continue
+      const { label } = account
+      if (label == null || !isNodeType(account.type)) continue
       const onChain = resolved.get(account.id)
       const counts = labelCountByType[account.type]
       const key =
-        (counts.get(account.label) ?? 0) > 1
-          ? `${account.label} (${getAddress(account.address)})`
-          : account.label
+        (counts.get(label) ?? 0) > 1
+          ? `${label} (${getAddress(account.address)})`
+          : label
       bucketsByType[account.type][key] = {
         id: account.id,
-        label: account.label,
+        label,
         address: account.address,
         chain: account.chain,
         vault: account.vault,

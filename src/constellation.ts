@@ -1,5 +1,5 @@
 /// <reference path="./zodiac-os-codegen.d.ts" />
-import type { Address, ChainId } from '@zodiac-os/api-types'
+import type { Address, ChainId } from '@zodiaceco/api-types'
 import type { AllowanceSpec } from './types'
 import type { Annotation, Permission, PermissionSet } from 'zodiac-roles-sdk'
 import { createRequire } from 'module'

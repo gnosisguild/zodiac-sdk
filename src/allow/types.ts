@@ -50,5 +50,5 @@ export type Scoping<T> = T extends PrimitiveValue
 
 export type { FunctionPermission, TargetPermission }
 
-export const EVERYTHING = Symbol.for('@zodiac-os/allow-kit/EVERYTHING')
+export const EVERYTHING = Symbol.for('@zodiaceco/allow-kit/EVERYTHING')
 export type EVERYTHING = typeof EVERYTHING

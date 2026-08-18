@@ -1,7 +1,7 @@
 import type {
   ApplyConstellationPayload,
   ApplyConstellationResult,
-} from '@zodiac-os/api-types'
+} from '@zodiaceco/api-types'
 import { invariant } from '@epic-web/invariant'
 import { processPermissions } from 'zodiac-roles-sdk'
 import type { PermissionSet } from 'zodiac-roles-sdk'
