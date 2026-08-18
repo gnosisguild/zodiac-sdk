@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/gnosisguild/zodiac-sdk/compare/v1.12.2...v1.13.0) (2026-08-18)
+
+
+### Features
+
+* re-export roles-sdk types and consolidate generated imports ([#46](https://github.com/gnosisguild/zodiac-sdk/issues/46)) ([abe8192](https://github.com/gnosisguild/zodiac-sdk/commit/abe8192ddec7c2d6b513a4ec075ebbf44c4121a2))
+
+
+### Bug Fixes
+
+* drop registry-url so npm publish reaches the OIDC exchange ([#47](https://github.com/gnosisguild/zodiac-sdk/issues/47)) ([11f556d](https://github.com/gnosisguild/zodiac-sdk/commit/11f556da0458ef37c3b0aad6cc6e88109d9ef572))
+
 ## [1.12.2](https://github.com/gnosisguild/zodiac-sdk/compare/v1.12.1...v1.12.2) (2026-08-18)
 
 
