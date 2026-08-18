@@ -20,9 +20,10 @@ Opens a browser tab so you can sign in, pick the org you want to use, and approv
 
 **IMPORTANT:** Make sure to add `.env` to your `.gitignore`.
 
-### 3. Create a config file
+### 3. Adjust the config file
 
-Create a `zodiac.config.ts` in your project root.
+`zodiac init` writes a starter `zodiac.config.ts` to your project root if you
+don't already have one. Fill in the contracts you want typed access to.
 
 ```ts
 import { defineConfig } from '@zodiaceco/sdk/cli/config'
