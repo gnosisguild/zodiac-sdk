@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/gnosisguild/zodiac-sdk/compare/v1.13.0...v1.13.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* README told you to create a config file init already writes ([#49](https://github.com/gnosisguild/zodiac-sdk/issues/49)) ([9345a2b](https://github.com/gnosisguild/zodiac-sdk/commit/9345a2bb77ef150e946b144f5ebb8930dd3c86ef))
+
 ## [1.13.0](https://github.com/gnosisguild/zodiac-sdk/compare/v1.12.2...v1.13.0) (2026-08-18)
 
 
