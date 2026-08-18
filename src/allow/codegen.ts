@@ -23,10 +23,7 @@ export function generateAllowTypes(
   out.push('/* eslint-disable */')
   out.push('')
   out.push(
-    `import type { FunctionPermission, TargetPermission } from "zodiac-roles-sdk";`
-  )
-  out.push(
-    `import type { Scoping, Options, EVERYTHING } from "@zodiaceco/sdk/allow";`
+    `import type { Scoping, Options, EVERYTHING, FunctionPermission, TargetPermission } from "@zodiaceco/sdk/allow";`
   )
   out.push('')
   out.push('declare global {')
