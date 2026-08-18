@@ -7,7 +7,7 @@ Programmatically manage [Zodiac](https://www.zodiac.eco) account constellations.
 ### 1. Install
 
 ```bash
-npm install @zodiac-os/sdk
+npm install @zodiaceco/sdk
 ```
 
 ### 2. Authorize project
@@ -25,7 +25,7 @@ Opens a browser tab so you can sign in, pick the org you want to use, and approv
 Create a `zodiac.config.ts` in your project root.
 
 ```ts
-import { defineConfig } from '@zodiac-os/sdk/cli/config'
+import { defineConfig } from '@zodiaceco/sdk/cli/config'
 
 export default defineConfig({
   contracts: {
@@ -50,7 +50,7 @@ This generates typed data in `.zodiac/` at your project root with your org's use
 The `constellation()` function is the main SDK entry point. It returns an API for declaring account constellations — the set of Safes, Roles mods, and users that make up your on-chain setup.
 
 ```ts
-import { constellation } from '@zodiac-os/sdk'
+import { constellation } from '@zodiaceco/sdk'
 ```
 
 ### Scoping to a workspace and chain
@@ -141,7 +141,7 @@ const aliceAddress = eth.user['Alice Sample']
 The `push()` function takes all nodes and sends them to the Zodiac OS API. Pass either a named object (keys become refs) or an array:
 
 ```ts
-import { push } from '@zodiac-os/sdk'
+import { push } from '@zodiaceco/sdk'
 
 await push({ ggDao, ggDaoRoles, newSafe, newRoles })
 ```

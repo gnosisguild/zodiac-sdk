@@ -1,5 +1,5 @@
 {
-  "name": "@zodiac-os/sdk",
+  "name": "@zodiaceco/sdk",
   "version": "1.12.1",
   "author": "Gnosis Guild",
   "license": "LGPL-3.0-only",
@@ -43,11 +43,11 @@
     "check:types": "tsc -p tsconfig.json",
     "fix:format": "prettier --write .",
     "test": "bun test",
-    "install-local-api-types": "cd ../zodiac-os/public-packages/api-types && pnpm pack-tmp && cd ../../../zodiac-sdk && tar -xzf /tmp/zodiac-os-api-types.tgz --strip-components=1 -C node_modules/@zodiac-os/api-types"
+    "install-local-api-types": "cd ../zodiac-os/public-packages/api-types && pnpm pack-tmp && cd ../../../zodiac-sdk && tar -xzf /tmp/zodiac-os-api-types.tgz --strip-components=1 -C node_modules/@zodiaceco/api-types"
   },
   "dependencies": {
     "@epic-web/invariant": "1.0.0",
-    "@zodiac-os/api-types": "^1.6.2",
+    "@zodiaceco/api-types": "^1.6.2",
     "commander": "^14.0.3",
     "dotenv": "^17.4.2",
     "open": "^11.0.0",

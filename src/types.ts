@@ -1,4 +1,4 @@
-import type { ApplyConstellationPayload } from '@zodiac-os/api-types'
+import type { ApplyConstellationPayload } from '@zodiaceco/api-types'
 
 // Extract the "new ROLES" spec variant (has required nonce) to avoid union duplication
 type ApiNewRolesSpec = Extract<

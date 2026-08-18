@@ -84,7 +84,7 @@ const CONFIG_EXTENSIONS = [
 
 const DEFAULT_CONFIG_PATH = `${CONFIG_BASENAME}.ts`
 
-const CONFIG_STUB = `import { defineConfig } from "@zodiac-os/sdk/cli/config";
+const CONFIG_STUB = `import { defineConfig } from "@zodiaceco/sdk/cli/config";
 
 export default defineConfig({
   contracts: {

@@ -26,7 +26,7 @@ export function generateAllowTypes(
     `import type { FunctionPermission, TargetPermission } from "zodiac-roles-sdk";`
   )
   out.push(
-    `import type { Scoping, Options, EVERYTHING } from "@zodiac-os/sdk/allow";`
+    `import type { Scoping, Options, EVERYTHING } from "@zodiaceco/sdk/allow";`
   )
   out.push('')
   out.push('declare global {')
