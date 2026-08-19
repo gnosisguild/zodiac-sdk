@@ -50,7 +50,7 @@ describe('push', () => {
 
     const { api } = mockApi()
     expect(push([roles], { api })).rejects.toThrow(
-      'Node "GG DAO" is referenced not included in the push() call'
+      'Node "GG DAO" is referenced but not included in the push() call'
     )
   })
 
