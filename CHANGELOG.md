@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.2](https://github.com/gnosisguild/zodiac-sdk/compare/v1.13.1...v1.13.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **cli:** resolve the implementation ABI for proxy contracts ([#51](https://github.com/gnosisguild/zodiac-sdk/issues/51)) ([d85bc47](https://github.com/gnosisguild/zodiac-sdk/commit/d85bc47db89d066e845894bb57eef9027a24f674))
+
 ## [1.13.1](https://github.com/gnosisguild/zodiac-sdk/compare/v1.13.0...v1.13.1) (2026-08-18)
 
 
