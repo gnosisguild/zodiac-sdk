@@ -174,7 +174,7 @@ function resolveRefs(value: unknown, refs: RefsIndex): unknown {
     const ref = refs.byIdentity.get(value) ?? refs.byLabel.get(labelKey(value))
     invariant(
       ref != null,
-      `Node "${value.label}" is referenced not included in the push() call`
+      `Node "${value.label}" is referenced but not included in the push() call`
     )
     return `$${ref}`
   }
