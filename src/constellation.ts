@@ -1,19 +1,20 @@
 /// <reference path="./zodiac-os-codegen.d.ts" />
 import type { Address, ChainId } from '@zodiaceco/api-types'
+import type { PermissionEntry } from './actions'
 import type { AllowanceSpec } from './types'
-import type { Annotation, Permission, PermissionSet } from 'zodiac-roles-sdk'
 import { createRequire } from 'module'
 import { resolveZodiacDir } from './paths'
 import { UUID } from 'crypto'
 
 /**
- * A role definition keyed by role name. Permissions are expanded into
- * `{ targets, annotations }` via `processPermissions` at `push()` time.
+ * A role definition keyed by role name. Entries describe what the role may do —
+ * parameters and labels, never compiled permissions. They are expanded into
+ * `{ targets, annotations }` when the constellation is deployed, so that a
+ * stored revision always compiles through the current compilers.
  */
 export type RoleDef = {
   members: readonly AddressOrRef[]
-  permissions: readonly (Permission | PermissionSet | Promise<PermissionSet>)[]
-  annotations?: readonly Annotation[]
+  permissions: readonly PermissionEntry[]
 }
 
 type User = {

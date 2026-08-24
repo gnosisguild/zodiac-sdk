@@ -1,10 +1,10 @@
 import type {
   ApplyConstellationPayload,
   ApplyConstellationResult,
+  ChainId,
 } from '@zodiaceco/api-types'
 import { invariant } from '@epic-web/invariant'
-import { processPermissions } from 'zodiac-roles-sdk'
-import type { PermissionSet } from 'zodiac-roles-sdk'
+import { isDeFiKitEntry, toAnnotation } from './actions'
 import { ApiClient } from './api'
 import type {
   ConstellationMeta,
@@ -60,9 +60,7 @@ export async function push(
 
   const results: ApplyConstellationResult[] = []
   for (const { meta, nodes: groupNodes } of groups.values()) {
-    const specification = await Promise.all(
-      groupNodes.map((n) => nodeToSpec(n, refs))
-    )
+    const specification = groupNodes.map((n) => nodeToSpec(n, refs))
     const result = await api.applyConstellation(meta.workspaceId, {
       label: meta.label,
       chain: meta.chain,
@@ -116,17 +114,18 @@ function deriveRefs(
   return { byIdentity, byLabel }
 }
 
-async function nodeToSpec(
+function nodeToSpec(
   node: ConstellationNodeInternal,
   refs: RefsIndex
-): Promise<ApplyConstellationPayload['specification'][number]> {
+): ApplyConstellationPayload['specification'][number] {
   const { id, _constellation, ...rest } = node as Record<string, any>
   const spec: Record<string, any> = {}
 
   for (const [key, value] of Object.entries(rest)) {
     if (node.type === 'ROLES' && key === 'roles' && value != null) {
-      spec.roles = await expandRoles(
+      spec.roles = describeRoles(
         value as Record<string, RoleDef | null>,
+        node.chain,
         refs
       )
       continue
@@ -142,31 +141,40 @@ async function nodeToSpec(
   ) as ApplyConstellationPayload['specification'][number]
 }
 
-async function expandRoles(
+/**
+ * Entries travel to the API as they were written — parameters and labels — and
+ * are compiled when the constellation is deployed. Only a DeFi Kit entry is
+ * rendered here, into the annotation uri that names the chain it was written
+ * for; the permissions behind it are fetched from that uri at deploy.
+ */
+function describeRoles(
   roles: Record<string, RoleDef | null>,
+  chain: ChainId,
   refs: RefsIndex
-): Promise<Record<string, unknown>> {
-  const entries = await Promise.all(
-    Object.entries(roles).map(async ([key, def]) => {
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(roles).map(([key, def]) => {
       if (def == null) {
         return [key, null] as const
       }
-      const resolvedPermissions = (await Promise.all(
-        def.permissions.map((p) => Promise.resolve(p))
-      )) as Parameters<typeof processPermissions>[0][number][]
-      const { targets, annotations } = processPermissions(resolvedPermissions)
+
       return [
         key,
         {
           key,
           members: resolveRefs(def.members, refs),
-          targets,
-          annotations: [...(def.annotations ?? []), ...annotations],
+          permissions: def.permissions.map((entry) =>
+            resolveRefs(
+              isDeFiKitEntry(entry)
+                ? { label: entry.label, annotation: toAnnotation(entry, chain) }
+                : entry,
+              refs
+            )
+          ),
         },
       ] as const
     })
   )
-  return Object.fromEntries(entries)
 }
 
 function resolveRefs(value: unknown, refs: RefsIndex): unknown {

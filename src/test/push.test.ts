@@ -231,8 +231,7 @@ describe('push', () => {
       eth_wrapping: {
         key: 'eth_wrapping',
         members: [],
-        targets: [],
-        annotations: [],
+        permissions: [],
       },
       deprecated: null,
     })
