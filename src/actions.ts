@@ -1,6 +1,7 @@
 import type { Address, ChainId } from '@zodiaceco/api-types'
 import type { allow as ethereumKit } from 'defi-kit/eth'
 import type { Permission } from 'zodiac-roles-sdk'
+import { recipientChains } from './permissionEntries'
 import type {
   AllowanceKey,
   DeFiKitEntry,
@@ -12,6 +13,7 @@ import type {
 import type { AllowanceSpec } from './types'
 
 export type { PermissionEntry }
+export type { Permissions } from './permissionEntries'
 
 /**
  * Allows signing CoW orders selling any of `sell` for any of `buy`. The
@@ -35,16 +37,35 @@ export const transfer = ({
   to = [],
   bridge = [],
   allowance,
-}: TransferParams): TransferEntry => ({
-  label,
-  action: {
-    type: 'transfer',
-    tokens: [...tokens],
-    to: to.map(toAddress),
-    ...(bridge.length > 0 && { bridge: bridge.map(toBridgeTarget) }),
-    ...(allowance != null && { allowance: allowanceKey(allowance) }),
-  },
-})
+}: TransferParams): TransferEntry => {
+  const entry: TransferEntry = {
+    label,
+    action: {
+      type: 'transfer',
+      tokens: [...tokens],
+      to: to.map(toAddress),
+      ...(bridge.length > 0 && { bridge: bridge.map(toBridgeTarget) }),
+      ...(allowance != null && { allowance: allowanceKey(allowance) }),
+    },
+  }
+
+  // Remember which chains the `to` nodes live on so push() can refuse a
+  // recipient from another chain. Symbol-keyed: never serialized.
+  const chains = to.flatMap((recipient) =>
+    typeof recipient === 'string' || recipient.chain == null
+      ? []
+      : [recipient.chain]
+  )
+
+  if (chains.length > 0) {
+    Object.defineProperty(entry, recipientChains, {
+      value: chains,
+      enumerable: false,
+    })
+  }
+
+  return entry
+}
 
 /**
  * A labelled bag of `allow`-kit permissions — the code-side counterpart of the

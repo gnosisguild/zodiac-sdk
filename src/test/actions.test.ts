@@ -6,6 +6,13 @@ import { push } from '../push'
 import * as codegen from './codegen.mock'
 
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+
+function mockApi() {
+  const mockApply = mock(() => Promise.resolve({ ok: true }))
+  const api = { applyConstellation: mockApply } as any
+  const lastPayload = () => (mockApply.mock.calls[0] as any)[1] as any
+  return { api, lastPayload }
+}
 const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 
 describe('actions', () => {
@@ -112,6 +119,42 @@ describe('actions', () => {
     ).toThrow('spans chains "42161" and "100"')
   })
 
+  it('refuses pushing a same-chain recipient that lives on another chain', async () => {
+    const { api } = mockApi()
+    const gno = constellation(
+      { workspace: 'GG', label: 'test', chain: 100 },
+      { codegen }
+    )
+    const eth = constellation(
+      { workspace: 'GG', label: 'test', chain: 1 },
+      { codegen }
+    )
+    const safe = eth.safe['GG DAO']
+
+    const roles = eth.roles['New Roles']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        treasury_ops: {
+          members: [],
+          permissions: [
+            transfer({
+              label: 'Grant payouts',
+              tokens: [USDC],
+              to: [gno.safe['GG DAO']],
+            }),
+          ],
+        },
+      },
+    })
+
+    expect(() => push([safe, roles], { api })).toThrow(
+      'lives on chain "100", but the role is on chain "1"'
+    )
+  })
+
   it('refuses a bridge target with no chain to go on', () => {
     expect(() =>
       transfer({
@@ -172,13 +215,6 @@ describe('actions', () => {
 })
 
 describe('push', () => {
-  function mockApi() {
-    const mockApply = mock(() => Promise.resolve({ ok: true }))
-    const api = { applyConstellation: mockApply } as any
-    const lastPayload = () => (mockApply.mock.calls[0] as any)[1] as any
-    return { api, lastPayload }
-  }
-
   function rolesWith(permissions: any[], chain: 1 | 100 = 1) {
     const eth = constellation(
       { workspace: 'GG', label: 'test', chain },

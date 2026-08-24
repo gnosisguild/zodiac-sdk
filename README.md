@@ -147,7 +147,8 @@ instead of replaying a copy made when it was pushed.
 
 ```ts
 import { swap, transfer, custom, defikit } from '@zodiaceco/sdk/actions'
-import { allow } from './.zodiac/allow'
+// `allow` is your project's generated permission kit — a global in template
+// projects, created by `zodiac pull-contracts`.
 
 const treasuryRoles = eth.roles['GG Treasury Roles']({
   nonce: 0n,

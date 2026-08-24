@@ -4,7 +4,11 @@ import type {
   ChainId,
 } from '@zodiaceco/api-types'
 import { invariant } from '@epic-web/invariant'
-import { isDeFiKitEntry, toAnnotation } from './permissionEntries'
+import {
+  assertRecipientChains,
+  isDeFiKitEntry,
+  toAnnotation,
+} from './permissionEntries'
 import { ApiClient } from './api'
 import type {
   ConstellationMeta,
@@ -163,14 +167,16 @@ function describeRoles(
         {
           key,
           members: resolveRefs(def.members, refs),
-          permissions: def.permissions.map((entry) =>
-            resolveRefs(
+          permissions: def.permissions.map((entry) => {
+            assertRecipientChains(entry, chain)
+
+            return resolveRefs(
               isDeFiKitEntry(entry)
                 ? { label: entry.label, annotation: toAnnotation(entry, chain) }
                 : entry,
               refs
             )
-          ),
+          }),
         },
       ] as const
     })

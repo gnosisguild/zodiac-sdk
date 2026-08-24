@@ -45,6 +45,32 @@ export const isDeFiKitEntry = (entry: PermissionEntry): entry is DeFiKitEntry =>
   typeof entry === 'object' && entry !== null && 'defiKit' in entry
 
 /**
+ * The chains of the node recipients a `transfer()`'s same-chain `to` named.
+ * Symbol-keyed so it never serializes; `push()` checks it against the chain of
+ * the roles node the entry ends up on. A transfer to a node on another chain
+ * would permit sending funds to an address that may not exist there.
+ */
+export const recipientChains = Symbol('recipientChains')
+
+export const assertRecipientChains = (
+  entry: PermissionEntry,
+  chain: ChainId
+): void => {
+  const chains = (entry as { [recipientChains]?: readonly ChainId[] })[
+    recipientChains
+  ]
+
+  for (const recipientChain of chains ?? []) {
+    if (recipientChain !== chain) {
+      const label = 'label' in entry ? `"${entry.label}"` : 'a transfer'
+      throw new Error(
+        `A recipient of ${label} lives on chain "${recipientChain}", but the role is on chain "${chain}". Use \`bridge\` for cross-chain recipients.`
+      )
+    }
+  }
+}
+
+/**
  * Search params are appended one value at a time, the form annotation uris are
  * normalized to before they are matched back against a preset.
  */
@@ -115,3 +141,6 @@ export type PermissionEntry =
   | SwapEntry
   | TransferEntry
   | DeFiKitEntry
+
+/** A role's full permission list — the type `permissions.ts` files satisfy. */
+export type Permissions = readonly PermissionEntry[]
