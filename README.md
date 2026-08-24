@@ -1,4 +1,4 @@
-# Zodiac OS SDK
+# Zodiac SDK
 
 Programmatically manage [Zodiac](https://www.zodiac.eco) account constellations.
 
