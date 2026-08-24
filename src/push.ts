@@ -4,7 +4,7 @@ import type {
   ChainId,
 } from '@zodiaceco/api-types'
 import { invariant } from '@epic-web/invariant'
-import { isDeFiKitEntry, toAnnotation } from './actions'
+import { isDeFiKitEntry, toAnnotation } from './permissionEntries'
 import { ApiClient } from './api'
 import type {
   ConstellationMeta,

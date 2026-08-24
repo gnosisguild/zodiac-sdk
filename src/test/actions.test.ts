@@ -1,4 +1,5 @@
 import { describe, it, expect, mock } from 'bun:test'
+import * as actions from '../actions'
 import { custom, defikit, swap, transfer } from '../actions'
 import { constellation } from '../constellation'
 import { push } from '../push'
@@ -8,6 +9,18 @@ const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
 const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 
 describe('actions', () => {
+  it('publishes the four helpers and nothing else', () => {
+    // `@zodiaceco/sdk/actions` is a published entrypoint: everything exported
+    // here is API we owe consumers. Entry shapes and the rendering `push()`
+    // does live in ./permissionEntries so they stay private.
+    expect(Object.keys(actions).sort()).toEqual([
+      'custom',
+      'defikit',
+      'swap',
+      'transfer',
+    ])
+  })
+
   it('describes a swap by its parameters', () => {
     expect(
       swap({ label: 'Rebalance stables', sell: [USDC], buy: [WETH] })
