@@ -81,10 +81,35 @@ function renderContractType(
   indent: string
 ): string {
   const members: string[] = []
-  const seen = new Set<string>()
   members.push(
     `${indent}  [EVERYTHING]: (options?: Options) => TargetPermission;`
   )
+
+  // Members mirror what the runtime proxy can resolve, which is whatever
+  // `Interface.getFunction` accepts. A name it would find ambiguous is not a
+  // member there — the proxy returns undefined for it — so an overloaded name
+  // is emitted once per full signature and never bare. Declaring the bare name
+  // anyway is what used to make `allow.eth.susds.deposit(…)` type-check and
+  // then fail at runtime.
+  for (const overloads of groupByName(abi).values()) {
+    const overloaded = overloads.length > 1
+    for (const fragment of overloads) {
+      const key = overloaded
+        ? signatureFor(fragment)
+        : (fragment.name as string)
+      members.push(renderFunctionSignature(fragment, key, indent + '  '))
+    }
+  }
+  return ['{', ...members, `${indent}}`].join('\n')
+}
+
+/**
+ * Permissionable fragments grouped by function name, in ABI order. Two
+ * fragments that render the same signature are the same function listed twice,
+ * so they collapse — emitting the key twice would not compile.
+ */
+function groupByName(abi: Abi): Map<string, AbiFragment[]> {
+  const byName = new Map<string, AbiFragment[]>()
   for (const fragment of abi) {
     if (fragment.type !== 'function') continue
     if (
@@ -94,18 +119,46 @@ function renderContractType(
       continue
     }
     const name = fragment.name as string
-    if (!name || seen.has(name)) continue
-    seen.add(name)
-    members.push(renderFunctionSignature(fragment, indent + '  '))
+    if (!name) continue
+    const overloads = byName.get(name) ?? []
+    if (overloads.some((f) => signatureFor(f) === signatureFor(fragment))) {
+      continue
+    }
+    byName.set(name, [...overloads, fragment])
   }
-  return ['{', ...members, `${indent}}`].join('\n')
+  return byName
+}
+
+/** The canonical `name(type,…)` form, which is how `Interface.getFunction`
+ * addresses one overload of a name. */
+function signatureFor(fragment: AbiFragment): string {
+  const inputs = (fragment.inputs as AbiFragment[]) ?? []
+  return `${fragment.name}(${inputs.map(canonicalTypeFor).join(',')})`
+}
+
+function canonicalTypeFor(fragment: AbiFragment): string {
+  const type = fragment.type as string
+
+  const arrayMatch = /^(.*)\[(\d*)\]$/.exec(type)
+  if (arrayMatch) {
+    const inner: AbiFragment = { ...fragment, type: arrayMatch[1] }
+    return `${canonicalTypeFor(inner)}[${arrayMatch[2]}]`
+  }
+
+  if (type === 'tuple') {
+    const components = (fragment.components as AbiFragment[]) ?? []
+    return `(${components.map(canonicalTypeFor).join(',')})`
+  }
+
+  return type
 }
 
 function renderFunctionSignature(
   fragment: AbiFragment,
+  key: string,
   indent: string
 ): string {
-  const name = renderPropKey(fragment.name as string)
+  const name = renderPropKey(key)
   const params: string[] = []
   for (const input of (fragment.inputs as AbiFragment[]) ?? []) {
     const paramName = sanitizeParamName(

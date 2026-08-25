@@ -24,7 +24,11 @@ export function buildAllowKit(
     attachAt(
       kit,
       [node.chain, ...node.segments],
-      makeAllowContract(node.address, abi as InterfaceAbi)
+      makeAllowContract(
+        node.address,
+        abi as InterfaceAbi,
+        [node.chain, ...node.segments].join('.')
+      )
     )
   }
   return kit
@@ -59,10 +63,37 @@ function missingAbiProxy(node: ContractNode) {
 
 function makeAllowContract(
   address: `0x${string}`,
-  abi: InterfaceAbi
+  abi: InterfaceAbi,
+  path: string
 ): Record<string | symbol, any> {
   const iface = Interface.from(abi)
   const lowerAddr = address.toLowerCase() as `0x${string}`
+
+  // Permissionable functions grouped by bare name, so an ambiguous one can be
+  // told apart from an unknown one. `Interface.getFunction` reports both as
+  // INVALID_ARGUMENT, and the two want opposite answers: an unknown name is
+  // simply not a member, an ambiguous one is a member the caller has not
+  // finished naming.
+  const overloads = new Map<string, FunctionFragment[]>()
+  iface.forEachFunction((fn) => {
+    if (fn.stateMutability === 'view' || fn.stateMutability === 'pure') return
+    overloads.set(fn.name, [...(overloads.get(fn.name) ?? []), fn])
+  })
+
+  const ambiguous = (prop: string) => (overloads.get(prop)?.length ?? 0) > 1
+
+  const explainAmbiguity = (prop: string): never => {
+    const signatures = overloads.get(prop)!.map((fn) => fn.format('sighash'))
+    throw new Error(
+      `\`allow.${path}.${prop}\` is ambiguous: ${address} has ` +
+        `${signatures.length} functions named "${prop}". Name the overload ` +
+        `you mean by its full signature — ` +
+        signatures
+          .map((sig) => `allow.${path}[${JSON.stringify(sig)}]`)
+          .join(' or ') +
+        `.`
+    )
+  }
 
   const allowEverything = (options?: Options): TargetPermission => ({
     targetAddress: lowerAddr,
@@ -87,13 +118,16 @@ function makeAllowContract(
       get: (_target, prop) => {
         if (prop === EVERYTHING) return allowEverything
         if (typeof prop !== 'string') return undefined
+        if (ambiguous(prop)) explainAmbiguity(prop)
         if (!has(prop)) return undefined
         const fn = iface.getFunction(prop)!
         return makeAllowFunction(fn, lowerAddr)
       },
+      // An ambiguous bare name is not a member — only the full signatures are.
+      // `in` answers that question; reaching for the property explains it.
       has: (_target, prop) => {
         if (prop === EVERYTHING) return true
-        return typeof prop === 'string' && has(prop)
+        return typeof prop === 'string' && !ambiguous(prop) && has(prop)
       },
     }
   )
