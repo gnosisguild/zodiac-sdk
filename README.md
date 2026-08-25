@@ -211,6 +211,11 @@ Every helper takes a `label`. The label names the action in Zodiac and never
 reaches the chain. A bare permission with no enclosing helper stays valid, but
 it has nowhere to appear in the app beyond the targets it allows.
 
+Allowance keys are plain labels — `key: 'usdc_payouts'` on the declaration, and
+`allowance: usdc_payouts` on the transfer, which reads the key off it. They are
+encoded to bytes32 when the constellation is deployed, so nothing calls
+`encodeKey` by hand. A label has to fit in 32 bytes.
+
 Tokens are named by address, not by symbol. A `transfer()` recipient may also
 be a node — an account from your codegen, or one bound by address — which
 stands for the address it lives at. A node whose address is only known once the

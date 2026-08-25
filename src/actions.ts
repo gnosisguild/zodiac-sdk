@@ -171,7 +171,8 @@ type TransferParams = {
   to?: readonly Recipient[]
   /** Destinations on other chains, bridged over Across. */
   bridge?: readonly BridgeTarget[]
-  /** Allowance capping what may be sent, declared on the roles modifier. */
+  /** Allowance capping what may be sent. Pass the allowance declared on the
+   * roles modifier, or its key. */
   allowance?: AllowanceSpec | AllowanceKey
 }
 

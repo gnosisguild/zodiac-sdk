@@ -90,8 +90,12 @@ const searchParams = (params: Record<string, DeFiKitParamValue>) => {
   return searchParams
 }
 
-/** The bytes32 key an allowance is addressed by on the modifier. */
-export type AllowanceKey = `0x${string}`
+/**
+ * An allowance key. Authored as a plain label, the way a role key is, and
+ * encoded to bytes32 when the constellation is deployed. An already-encoded
+ * key still works — `encodeKey` passes 32-byte hex through unchanged.
+ */
+export type AllowanceKey = string
 
 export type SwapEntry = {
   label: string

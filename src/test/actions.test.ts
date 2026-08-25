@@ -38,8 +38,12 @@ describe('actions', () => {
   })
 
   it('describes a transfer by the allowance key that caps it', () => {
+    // An encoded key here, not a label: `AllowanceSpec` is typed from the
+    // published api-types, which still pins `key` to hex. Both forms resolve
+    // to the same on-chain key, and the label form types once api-types ships
+    // the relaxed schema.
     const allowance = {
-      key: '0x1234',
+      key: '0x757364635f7061796f7574730000000000000000000000000000000000000000',
       refill: 0n,
       maxRefill: 0n,
       period: 0n,
@@ -60,7 +64,8 @@ describe('actions', () => {
         type: 'transfer',
         tokens: [USDC],
         to: [WETH],
-        allowance: '0x1234',
+        allowance:
+          '0x757364635f7061796f7574730000000000000000000000000000000000000000',
       },
     })
   })
@@ -185,6 +190,17 @@ describe('actions', () => {
         to: ['0xcccc00000000000000000000000000000000cccc'],
       },
     })
+  })
+
+  it('takes an allowance key as a plain label', () => {
+    expect(
+      transfer({
+        label: 'Grant payouts',
+        tokens: [USDC],
+        to: [WETH],
+        allowance: 'usdc_payouts',
+      }).action.allowance
+    ).toBe('usdc_payouts')
   })
 
   it('labels a bag of plain permissions', () => {
