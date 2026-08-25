@@ -137,6 +137,90 @@ References are resolved by label at `push()` time, so both sides of the cycle mu
 const aliceAddress = eth.user['Alice Sample']
 ```
 
+### Describing what a role may do
+
+A Roles mod carries roles, and every role lists `permissions` — entries that
+describe what the role is allowed to do. Entries carry parameters and a label,
+never compiled permissions: they are compiled when the constellation is
+deployed, so a stored revision always goes through the current compilers
+instead of replaying a copy made when it was pushed.
+
+```ts
+import { swap, transfer, custom, defikit } from '@zodiaceco/sdk/actions'
+// `allow` is your project's generated permission kit — a global in template
+// projects, created by `zodiac pull-contracts`.
+
+const treasuryRoles = eth.roles['GG Treasury Roles']({
+  nonce: 0n,
+  target: ggTreasury,
+  allowances: { usdc_payouts },
+  roles: {
+    treasury_ops: {
+      members: [eth.user['Alice Sample']],
+      permissions: [
+        swap({ label: 'Rebalance stables', sell: [USDC, DAI], buy: [WETH] }),
+
+        transfer({
+          label: 'Grant payouts',
+          tokens: [USDC],
+          to: [eth.safe['Grants Safe']],
+          bridge: [{ to: [gno.safe['Ops Safe']], receive: [GNO_USDC] }],
+          allowance: usdc_payouts,
+        }),
+
+        defikit.aave_v3.deposit({
+          label: 'Aave deposits',
+          market: 'Core',
+          targets: ['WETH'],
+        }),
+
+        custom({
+          label: 'Bot ops',
+          permissions: [
+            allow.eth.weth.deposit({ send: true }),
+            allow.eth.weth.withdraw(),
+          ],
+        }),
+      ],
+    },
+  },
+})
+```
+
+Each helper covers a different kind of action:
+
+- `swap()` allows signing CoW orders between the tokens it names.
+- `transfer()` allows sending tokens to the addresses it names, optionally
+  capped by an allowance declared on the same Roles mod. Pass the zero address
+  to allow sending the native token. `bridge` names destinations on other
+  chains, sent over Across: each target pins both the recipients and the tokens
+  they may receive there. A target takes its chain from its recipient nodes, or
+  name one with `chain` when the recipients are plain addresses. Tokens without
+  an Across route to a target are skipped, the same way the app skips them —
+  routes change between writing a spec and deploying it — but a target nothing
+  can reach at all is refused at deploy rather than deployed half-working.
+- `defikit` mirrors the DeFi Kit allow kit — same protocols, verbs and
+  parameters, plus a `label`. A DeFi Kit entry is nothing but its annotation;
+  the permissions behind it are fetched from the annotation's uri at deploy, so
+  `push()` fetches nothing. Protocols and parameters are typed against the
+  Ethereum kit, the widest of the chains DeFi Kit serves.
+- `custom()` labels a bag of plain `allow`-kit permissions — everything the
+  other helpers don't cover. It takes permissions, not other actions.
+
+Every helper takes a `label`. The label names the action in Zodiac and never
+reaches the chain. A bare permission with no enclosing helper stays valid, but
+it has nowhere to appear in the app beyond the targets it allows.
+
+Allowance keys are plain labels — `key: 'usdc_payouts'` on the declaration, and
+`allowance: usdc_payouts` on the transfer, which reads the key off it. They are
+encoded to bytes32 when the constellation is deployed, so nothing calls
+`encodeKey` by hand. A label has to fit in 32 bytes.
+
+Tokens are named by address, not by symbol. A `transfer()` recipient may also
+be a node — an account from your codegen, or one bound by address — which
+stands for the address it lives at. A node whose address is only known once the
+constellation is deployed is rejected at compile time.
+
 ### Pushing the constellation
 
 The `push()` function takes all nodes and sends them to the Zodiac OS API. Pass either a named object (keys become refs) or an array:
