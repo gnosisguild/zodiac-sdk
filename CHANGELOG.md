@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/gnosisguild/zodiac-sdk/compare/v1.13.2...v2.0.0) (2026-08-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* `RoleDef.permissions` no longer accepts `PermissionSet` or `Promise<PermissionSet>`, and `RoleDef.annotations` is gone. Write permissions through the helpers in `@zodiaceco/sdk/actions`: `custom()` labels a bag of `allow`-kit permissions, and `defikit` replaces calling the DeFi Kit package directly.
+
+### Features
+
+* describe role permissions, never compile them ([#54](https://github.com/gnosisguild/zodiac-sdk/issues/54)) ([923ade6](https://github.com/gnosisguild/zodiac-sdk/commit/923ade68a190dd00d3c0d9c360c33c5fd382ffd8))
+
+
+### Bug Fixes
+
+* **allow:** type and explain overloaded functions ([#56](https://github.com/gnosisguild/zodiac-sdk/issues/56)) ([fa1e222](https://github.com/gnosisguild/zodiac-sdk/commit/fa1e2224f2d85a8af6c2e6633c397cb392f496bf))
+
 ## [1.13.2](https://github.com/gnosisguild/zodiac-sdk/compare/v1.13.1...v1.13.2) (2026-08-20)
 
 
