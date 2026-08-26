@@ -1,18 +1,19 @@
 import type { Address, ChainId } from '@zodiaceco/api-types'
 import type { allow as ethereumKit } from 'defi-kit/eth'
-import type { Permission } from 'zodiac-roles-sdk'
 import { recipientChains } from './permissionEntries'
 import type {
   AllowanceKey,
+  ConstellationPermission,
   DeFiKitEntry,
   LabelledPermissions,
   PermissionEntry,
+  PermissionTarget,
   SwapEntry,
   TransferEntry,
 } from './permissionEntries'
 import type { AllowanceSpec } from './types'
 
-export type { PermissionEntry }
+export type { PermissionEntry, PermissionTarget }
 export type { Permissions } from './permissionEntries'
 
 /**
@@ -179,7 +180,7 @@ type TransferParams = {
 type CustomParams = {
   /** Names the action in the app. Never reaches the chain. */
   label: string
-  permissions: readonly Permission[]
+  permissions: readonly ConstellationPermission[]
 }
 
 /** An address, or a node that already knows the address it lives at. */

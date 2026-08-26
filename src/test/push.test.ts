@@ -38,6 +38,69 @@ describe('push', () => {
     expect(spec.avatar).toBe('$0')
   })
 
+  it('resolves a node named as a permission target', async () => {
+    const eth = setup()
+    const safe = eth.safe['New Safe']({
+      nonce: 0n,
+      threshold: 1,
+      owners: ['0xaaaa00000000000000000000000000000000aaaa'],
+    })
+    const roles = eth.roles['New Roles']({
+      nonce: 0n,
+      target: safe,
+      owner: safe,
+      avatar: safe,
+      roles: {
+        emergency: {
+          members: ['0xbbbb00000000000000000000000000000000bbbb'],
+          // The policy governs a Safe that this same push creates, so the
+          // permission names the node rather than an address nobody has yet.
+          permissions: [{ targetAddress: safe, selector: '0xe009cfde' }],
+        },
+      },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    const spec = lastPayload().specification[1]
+
+    expect(spec.roles.emergency.permissions[0].targetAddress).toEqual('$safe')
+  })
+
+  it('resolves a node named as a permission target inside a labelled entry', async () => {
+    const eth = setup()
+    const safe = eth.safe['New Safe']({
+      nonce: 0n,
+      threshold: 1,
+      owners: ['0xaaaa00000000000000000000000000000000aaaa'],
+    })
+    const roles = eth.roles['New Roles']({
+      nonce: 0n,
+      target: safe,
+      owner: safe,
+      avatar: safe,
+      roles: {
+        emergency: {
+          members: ['0xbbbb00000000000000000000000000000000bbbb'],
+          permissions: [
+            {
+              label: 'Disable the module',
+              permissions: [{ targetAddress: safe, selector: '0xe009cfde' }],
+            },
+          ],
+        },
+      },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    const entry = lastPayload().specification[1].roles.emergency.permissions[0]
+
+    expect(entry.permissions[0].targetAddress).toEqual('$safe')
+  })
+
   it('throws when a referenced node is not in the push list', async () => {
     const eth = setup()
     const dao = eth.safe['GG DAO']
