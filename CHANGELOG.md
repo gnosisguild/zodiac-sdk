@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.0.0...v2.1.0) (2026-08-26)
+
+
+### Features
+
+* **actions:** let a permission name a node as its target ([#57](https://github.com/gnosisguild/zodiac-sdk/issues/57)) ([ff66bc9](https://github.com/gnosisguild/zodiac-sdk/commit/ff66bc9b0edc30bce07f223388c52291f52f1f27))
+
 ## [2.0.0](https://github.com/gnosisguild/zodiac-sdk/compare/v1.13.2...v2.0.0) (2026-08-25)
 
 
