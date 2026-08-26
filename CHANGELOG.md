@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.0...v2.1.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **actions:** accept a forward reference as a permission target ([#59](https://github.com/gnosisguild/zodiac-sdk/issues/59)) ([6eaf021](https://github.com/gnosisguild/zodiac-sdk/commit/6eaf0219fd9d88e06359fa6c4674a011f115a4ca))
+
 ## [2.1.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.0.0...v2.1.0) (2026-08-26)
 
 
