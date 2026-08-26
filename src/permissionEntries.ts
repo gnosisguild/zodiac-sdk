@@ -1,6 +1,6 @@
 import type { Address, ChainId } from '@zodiaceco/api-types'
 import type { Permission } from 'zodiac-roles-sdk'
-import type { ConstellationNode } from './constellation'
+import type { NodeRef } from './constellation'
 
 /**
  * The shapes a role's `permissions` travel to the API in, and the one piece of
@@ -122,8 +122,13 @@ export type TransferEntry = {
  * a permission points at often does not exist yet. Naming the node instead
  * sends a reference, and the address is substituted once it is derived at
  * deploy — the same way a node is named as an owner, a module or an avatar.
+ *
+ * `NodeRef` for the same reason those fields use it: an uninvoked accessor is
+ * a forward reference to a node, and is how two nodes that need each other are
+ * written. It carries the label a reference resolves by without being a
+ * complete node.
  */
-export type PermissionTarget = `0x${string}` | ConstellationNode
+export type PermissionTarget = `0x${string}` | NodeRef
 
 type WithNodeTarget<P> = P extends { targetAddress: `0x${string}` }
   ? Omit<P, 'targetAddress'> & { targetAddress: PermissionTarget }

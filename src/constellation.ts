@@ -91,7 +91,11 @@ type RolesEntries<
 type NodeType = 'SAFE' | 'ROLES' | 'DELAY'
 
 /** A reference to a node used in `owners`, `modules`, `target`, etc. */
-type NodeRef = Readonly<{ type: NodeType; label: string; chain: ChainId }>
+export type NodeRef = Readonly<{
+  type: NodeType
+  label: string
+  chain: ChainId
+}>
 
 /** A blockchain address (checksummed or lowercase) or a reference to another
  * node in the constellation. Values are normalized to lowercase before being

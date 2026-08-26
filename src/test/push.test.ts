@@ -68,6 +68,37 @@ describe('push', () => {
     expect(spec.roles.emergency.permissions[0].targetAddress).toEqual('$safe')
   })
 
+  it('resolves an uninvoked accessor named as a permission target', async () => {
+    const eth = setup()
+    // The forward-reference form: two nodes that need each other cannot both be
+    // invoked first, so a permission has to be able to name the accessor.
+    const safeRef = eth.safe['New Safe']
+    const roles = eth.roles['New Roles']({
+      nonce: 0n,
+      target: safeRef,
+      owner: safeRef,
+      avatar: safeRef,
+      roles: {
+        emergency: {
+          members: ['0xbbbb00000000000000000000000000000000bbbb'],
+          permissions: [{ targetAddress: safeRef, selector: '0xe009cfde' }],
+        },
+      },
+    })
+    const safe = safeRef({
+      nonce: 0n,
+      threshold: 1,
+      owners: ['0xaaaa00000000000000000000000000000000aaaa'],
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    const spec = lastPayload().specification[1]
+
+    expect(spec.roles.emergency.permissions[0].targetAddress).toEqual('$safe')
+  })
+
   it('resolves a node named as a permission target inside a labelled entry', async () => {
     const eth = setup()
     const safe = eth.safe['New Safe']({
