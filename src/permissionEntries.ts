@@ -1,5 +1,6 @@
 import type { Address, ChainId } from '@zodiaceco/api-types'
 import type { Permission } from 'zodiac-roles-sdk'
+import type { ConstellationNode } from './constellation'
 
 /**
  * The shapes a role's `permissions` travel to the API in, and the one piece of
@@ -113,9 +114,27 @@ export type TransferEntry = {
   }
 }
 
+/**
+ * A permission's target, written either as an address or as another node in the
+ * same constellation.
+ *
+ * A policy is usually pushed alongside the accounts it governs, so the address
+ * a permission points at often does not exist yet. Naming the node instead
+ * sends a reference, and the address is substituted once it is derived at
+ * deploy — the same way a node is named as an owner, a module or an avatar.
+ */
+export type PermissionTarget = `0x${string}` | ConstellationNode
+
+type WithNodeTarget<P> = P extends { targetAddress: `0x${string}` }
+  ? Omit<P, 'targetAddress'> & { targetAddress: PermissionTarget }
+  : P
+
+/** A `zodiac-roles-sdk` permission that may name a node as its target. */
+export type ConstellationPermission = WithNodeTarget<Permission>
+
 export type LabelledPermissions = {
   label: string
-  permissions: Permission[]
+  permissions: ConstellationPermission[]
 }
 
 export type DeFiKitEntry = {
@@ -140,7 +159,7 @@ export type DeFiKitParamValue =
  * labelled form names something the app can show as a single card.
  */
 export type PermissionEntry =
-  | Permission
+  | ConstellationPermission
   | LabelledPermissions
   | SwapEntry
   | TransferEntry
