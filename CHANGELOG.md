@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.1...v2.1.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* reject invalid constellation refs ([#61](https://github.com/gnosisguild/zodiac-sdk/issues/61)) ([de5ffbd](https://github.com/gnosisguild/zodiac-sdk/commit/de5ffbd11c6d2798e0894e465eca384e4ac68572))
+
 ## [2.1.1](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.0...v2.1.1) (2026-08-26)
 
 
