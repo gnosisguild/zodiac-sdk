@@ -174,6 +174,16 @@ describe('push', () => {
     expect(specs[1].ref).toBe('treasury')
   })
 
+  it('rejects non-lowercase object keys as refs', async () => {
+    const eth = setup()
+    const assetSafe = eth.safe['GG DAO']
+    const { api } = mockApi()
+
+    expect(push({ assetSafe }, { api })).rejects.toThrow(
+      'Invalid ref "assetSafe": refs must contain only lowercase letters, numbers, or underscores'
+    )
+  })
+
   it('converts bigint nonce to string', async () => {
     const eth = setup()
     const newSafe = eth.safe['New Safe']({
@@ -203,7 +213,7 @@ describe('push', () => {
     })
 
     const { api, lastPayload } = mockApi()
-    await push({ dao, roles, newSafe }, { api })
+    await push({ dao, roles, new_safe: newSafe }, { api })
 
     const spec = lastPayload().specification[2]
     expect(spec.owners).toEqual([
