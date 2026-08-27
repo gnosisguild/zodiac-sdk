@@ -28,6 +28,18 @@ const mockAccounts = [
         chain: 1,
         address: '0xaaaa00000000000000000000000000000000aaaa',
         vault: true,
+        deploymentState: 'Deployed',
+        spec: null,
+      },
+      {
+        id: 'vault-2',
+        type: 'SAFE',
+        label: 'Undeployed treasury',
+        chain: 11155111,
+        address: '0xeeee00000000000000000000000000000000eeee',
+        vault: true,
+        deploymentState: 'Draft',
+        spec: null,
       },
     ],
   },
@@ -46,6 +58,8 @@ const mockResolvedSafe = {
   modules: [],
 }
 
+let resolvedSpecification: unknown[] = []
+
 mock.module('../../api', () => ({
   ApiClient: class {
     listUsers() {
@@ -54,7 +68,11 @@ mock.module('../../api', () => ({
     listAccounts() {
       return Promise.resolve(mockAccounts)
     }
-    resolveConstellation() {
+    resolveConstellation(
+      _workspaceId: string,
+      payload: { specification: unknown[] }
+    ) {
+      resolvedSpecification = payload.specification
       return Promise.resolve({ result: [mockResolvedSafe] })
     }
   },
@@ -65,6 +83,7 @@ describe('pullOrg', () => {
 
   afterEach(() => {
     rmSync(tmpDir, { recursive: true, force: true })
+    resolvedSpecification = []
   })
 
   it('writes JS and d.ts to .zodiac/', async () => {
@@ -87,10 +106,19 @@ describe('pullOrg', () => {
     expect(js).toContain('exports.accounts')
     expect(js).toContain('"Alice Example"')
     expect(js).toContain('Treasury')
+    expect(js).toContain('Undeployed treasury')
     expect(js).toContain('safes:')
     expect(js).toContain('rolesMods:')
     expect(js).toContain('delays:')
     expect(js).toContain('vault: true')
+    expect(resolvedSpecification).toEqual([
+      {
+        ref: 'vault_0',
+        type: 'SAFE',
+        chain: 1,
+        address: '0xaaaa00000000000000000000000000000000aaaa',
+      },
+    ])
 
     // d.ts file is written
     const dts = readFileSync(join(outDir, 'index.d.ts'), 'utf-8')

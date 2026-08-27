@@ -52,15 +52,18 @@ export const pullOrg = async (config: ResolvedConfig) => {
   //   - `spec` present → pass the stored apply-time node verbatim
   //     (deployed nodes match on-chain; undeployed ones derive via
   //     CREATE2 from the stored nonce + config).
-  //   - `vault: true` with no spec → treat as a pre-existing on-chain
-  //     SAFE (e.g. a workspace vault created outside the
-  //     constellation-as-code flow). The resolver finds it on-chain.
-  //   - `vault: false` with no spec → a constituent of a still-pending
-  //     constellation that's never been deployed. We can't usefully
-  //     resolve it, so skip; the codegen emits minimal fields.
+  //   - a deployed or modified `vault: true` with no spec → treat as a
+  //     pre-existing on-chain SAFE. The resolver finds it on-chain.
+  //   - a draft or pending vault, or a constituent with no spec → it may only
+  //     have a predicted address. Skip resolution and emit minimal fields.
   const allAccounts = workspaceAccounts.flatMap((ws) => ws.accounts)
   const resolvableAccounts = allAccounts.filter(
-    (a) => a.spec != null || a.vault
+    (account) =>
+      account.spec != null ||
+      (account.vault &&
+        'deploymentState' in account &&
+        (account.deploymentState === 'Deployed' ||
+          account.deploymentState === 'Modified'))
   )
   const resolved = new Map<
     string,
