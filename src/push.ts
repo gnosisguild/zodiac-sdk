@@ -92,6 +92,10 @@ function deriveRefs(
   const byLabel = new Map<string, string>()
 
   const register = (node: ConstellationNodeInternal, ref: string) => {
+    invariant(
+      /^[a-z0-9_]+$/.test(ref),
+      `Invalid ref "${ref}": refs must contain only lowercase letters, numbers, or underscores`
+    )
     byIdentity.set(node, ref)
     byLabel.set(labelKey(node), ref)
   }
