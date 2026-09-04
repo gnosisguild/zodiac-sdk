@@ -76,6 +76,14 @@ export async function push(
   return results
 }
 
+/**
+ * What a ref may be spelled like. Refs come from export names and object keys,
+ * so any identifier a node can be declared under has to survive the push —
+ * except one opening with `$`, which is how a node references another. A list
+ * of nodes refs them by position, so a plain index counts too.
+ */
+const IDENTIFIER = /^(?:[a-zA-Z_][a-zA-Z0-9_$]*|\d+)$/
+
 type RefsIndex = {
   byIdentity: Map<ConstellationNodeInternal, string>
   byLabel: Map<string, string>
@@ -93,8 +101,8 @@ function deriveRefs(
 
   const register = (node: ConstellationNodeInternal, ref: string) => {
     invariant(
-      /^[a-z0-9_]+$/.test(ref),
-      `Invalid ref "${ref}": refs must contain only lowercase letters, numbers, or underscores`
+      IDENTIFIER.test(ref),
+      `Invalid ref "${ref}": a ref is a JavaScript identifier, and cannot start with "$"`
     )
     byIdentity.set(node, ref)
     byLabel.set(labelKey(node), ref)

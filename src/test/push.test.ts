@@ -229,13 +229,34 @@ describe('push', () => {
     expect(specs[1].ref).toBe('treasury')
   })
 
-  it('rejects non-lowercase object keys as refs', async () => {
+  // A ref is the name a node is declared under, and export names are
+  // conventionally camelCase. Rejecting them would make the documented way of
+  // writing a constellation the one way it cannot be written.
+  it('takes any identifier as a ref', async () => {
     const eth = setup()
-    const assetSafe = eth.safe['GG DAO']
+    const { api, lastPayload } = mockApi()
+
+    await push({ assetSafe: eth.safe['GG DAO'] }, { api })
+
+    expect(lastPayload().specification[0].ref).toBe('assetSafe')
+  })
+
+  it('rejects a ref that opens a reference', async () => {
+    const eth = setup()
     const { api } = mockApi()
 
-    expect(push({ assetSafe }, { api })).rejects.toThrow(
-      'Invalid ref "assetSafe": refs must contain only lowercase letters, numbers, or underscores'
+    // `$treasury` already means "the node named treasury".
+    expect(push({ $treasury: eth.safe['GG DAO'] }, { api })).rejects.toThrow(
+      'Invalid ref "$treasury": a ref is a JavaScript identifier, and cannot start with "$"'
+    )
+  })
+
+  it('rejects a ref that is not an identifier', async () => {
+    const eth = setup()
+    const { api } = mockApi()
+
+    expect(push({ '2safe': eth.safe['GG DAO'] }, { api })).rejects.toThrow(
+      'Invalid ref "2safe": a ref is a JavaScript identifier, and cannot start with "$"'
     )
   })
 
