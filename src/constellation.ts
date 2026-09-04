@@ -241,7 +241,7 @@ type ExistingNodeAccessor<
   NP extends Record<string, any>,
 > = Readonly<Prettify<E & { type: Type; label: K; chain: Ch }>> &
   (<
-    O extends {
+    const O extends {
       [P in Exclude<keyof E & string, 'id' | 'label'>]?: any
     } & Partial<NP> = {},
   >(
@@ -260,7 +260,10 @@ type NewNodeAccessor<
   Ch extends ChainId,
   NP extends Record<string, any>,
 > = Readonly<Prettify<{ type: Type; label: string; chain: Ch }>> &
-  (<P extends NP>(
+  // `const` so a node reads back the values it was written with — `threshold: 2`
+  // rather than `number`. Every prop it widens into is already `readonly`, so
+  // the tuples this infers stay assignable.
+  (<const P extends NP>(
     props: P
   ) => Readonly<Prettify<P & { type: Type; label: string; chain: Ch }>>)
 
