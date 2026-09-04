@@ -28,6 +28,28 @@ const mockAccounts = [
         chain: 1,
         address: '0xaaaa00000000000000000000000000000000aaaa',
         vault: true,
+        spec: null,
+      },
+      {
+        id: 'roles-1',
+        type: 'ROLES',
+        label: 'Ops Roles',
+        chain: 1,
+        address: '0xffff00000000000000000000000000000000ffff',
+        vault: false,
+        spec: { ref: 'ops', type: 'ROLES', chain: 1 },
+      },
+      // Known only by address — a Safe owner, so the codegen has no key for
+      // it. `/accounts` still vouched for it holding code, so it is asked
+      // about like the rest.
+      {
+        id: 'owner-1',
+        type: 'SAFE',
+        label: null,
+        chain: 1,
+        address: '0xdddd00000000000000000000000000000000dddd',
+        vault: false,
+        spec: null,
       },
     ],
   },
@@ -46,6 +68,29 @@ const mockResolvedSafe = {
   modules: [],
 }
 
+let resolvedAccounts: unknown[] = []
+
+const mockResolvedRolesMod = {
+  type: 'ROLES',
+  chain: 1,
+  address: '0xffff00000000000000000000000000000000ffff',
+  owner: '0xaaaa00000000000000000000000000000000aaaa',
+  target: '0xaaaa00000000000000000000000000000000aaaa',
+  avatar: '0xaaaa00000000000000000000000000000000aaaa',
+  roles: [],
+  allowances: [],
+  multisend: [],
+}
+
+const mockResolvedOwner = {
+  type: 'SAFE',
+  chain: 1,
+  address: '0xdddd00000000000000000000000000000000dddd',
+  threshold: 1,
+  owners: [],
+  modules: [],
+}
+
 mock.module('../../api', () => ({
   ApiClient: class {
     listUsers() {
@@ -54,8 +99,15 @@ mock.module('../../api', () => ({
     listAccounts() {
       return Promise.resolve(mockAccounts)
     }
-    resolveConstellation() {
-      return Promise.resolve({ result: [mockResolvedSafe] })
+    resolveConstellation(
+      _workspaceId: string,
+      payload: { accounts: unknown[] }
+    ) {
+      resolvedAccounts = payload.accounts
+
+      return Promise.resolve({
+        result: [mockResolvedSafe, mockResolvedRolesMod, mockResolvedOwner],
+      })
     }
   },
 }))
@@ -65,6 +117,23 @@ describe('pullOrg', () => {
 
   afterEach(() => {
     rmSync(tmpDir, { recursive: true, force: true })
+    resolvedAccounts = []
+  })
+
+  // An address is the whole of what `/resolve` reads, and it identifies the
+  // account for every caller — unlike a spec node without one, whose address
+  // the endpoint would have had to derive per API key.
+  it('asks about every listed account by chain and address', async () => {
+    mkdirSync(tmpDir, { recursive: true })
+
+    const { pullOrg } = await import('./pullOrg')
+    await pullOrg({ apiKey: 'zodiac_test-key', rootDir: tmpDir })
+
+    expect(resolvedAccounts).toEqual([
+      { chain: 1, address: '0xaaaa00000000000000000000000000000000aaaa' },
+      { chain: 1, address: '0xffff00000000000000000000000000000000ffff' },
+      { chain: 1, address: '0xdddd00000000000000000000000000000000dddd' },
+    ])
   })
 
   it('writes JS and d.ts to .zodiac/', async () => {

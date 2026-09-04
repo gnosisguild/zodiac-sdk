@@ -1,6 +1,5 @@
 import type { ResolvedConfig } from '../config'
 import { ApiClient } from '../../api'
-import { invariant } from '@epic-web/invariant'
 import { getAddress } from 'ethers'
 import {
   ModuleKind,
@@ -47,51 +46,37 @@ export const pullOrg = async (config: ResolvedConfig) => {
     client.listAccounts(),
   ])
 
-  // Fetch fresh on-chain state via `resolveConstellation` for every
-  // account we can resolve:
-  //   - `spec` present → pass the stored apply-time node verbatim
-  //     (deployed nodes match on-chain; undeployed ones derive via
-  //     CREATE2 from the stored nonce + config).
-  //   - `vault: true` with no spec → treat as a pre-existing on-chain
-  //     SAFE (e.g. a workspace vault created outside the
-  //     constellation-as-code flow). The resolver finds it on-chain.
-  //   - `vault: false` with no spec → a constituent of a still-pending
-  //     constellation that's never been deployed. We can't usefully
-  //     resolve it, so skip; the codegen emits minimal fields.
+  // The generated accounts carry their onchain state so a node reads as the
+  // account it names and completes in an editor. Only what a constellation
+  // declares is ever pushed back, so this is for reading, not a declaration.
+  //
+  // Every account here holds code onchain: `/accounts` admits one only once
+  // it has been seen to. That is what makes them safe to ask about, since
+  // `/resolve` reads chain and cannot describe an address nothing was
+  // deployed to. Nothing re-checks it — the listing carries no signal a
+  // prediction would fail, so a proxy for it here would be one to trust
+  // rather than one that works. Ask everything, and let it say when its
+  // indexing has not reached one yet.
   const allAccounts = workspaceAccounts.flatMap((ws) => ws.accounts)
-  const resolvableAccounts = allAccounts.filter(
-    (a) => a.spec != null || a.vault
-  )
   const resolved = new Map<
     string,
     Awaited<ReturnType<typeof client.resolveConstellation>>['result'][number]
   >()
-  if (resolvableAccounts.length > 0) {
-    const response = await client.resolveConstellation(
+
+  if (allAccounts.length > 0) {
+    const { result } = await client.resolveConstellation(
       workspaceAccounts[0].workspaceId, // any workspace works for the resolve route
       {
-        specification: resolvableAccounts.map((account, i) =>
-          account.spec != null
-            ? account.spec
-            : {
-                // Synthesize a ref for vault-fallback entries (no stored
-                // spec). The /resolve payload requires a ref on every
-                // entry; the value isn't used downstream beyond echoing
-                // back into the response, so a positional id is fine.
-                ref: `vault_${i}` as Lowercase<string>,
-                type: 'SAFE',
-                chain: account.chain,
-                address: account.address,
-              }
-        ),
+        accounts: allAccounts.map(({ chain, address }) => ({
+          chain,
+          address,
+        })),
       }
     )
-    invariant(
-      response?.result?.length === resolvableAccounts.length,
-      `resolveConstellation returned ${response?.result?.length ?? 0} accounts for ${resolvableAccounts.length} accounts`
-    )
-    resolvableAccounts.forEach((account, i) => {
-      resolved.set(account.id, response.result[i])
+
+    // Aligned with the request, entry for entry.
+    allAccounts.forEach((account, index) => {
+      resolved.set(account.id, result[index])
     })
   }
 
