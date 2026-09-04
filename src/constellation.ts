@@ -132,7 +132,8 @@ type NodeBase = Readonly<{
   nonce?: bigint
 }>
 
-/** A safe node spec — existing vault ref or new safe with required config. */
+/** A safe node — a reference to one the workspace already has, or a new one
+ * with the config it is deployed with. */
 export type SafeNode = NodeBase &
   Readonly<{
     /** Discriminator identifying this node as a Safe. */
@@ -147,7 +148,8 @@ export type SafeNode = NodeBase &
     vault?: boolean
   }>
 
-/** A roles modifier node spec — existing vault ref or new roles with modifier config. */
+/** A roles modifier node — a reference to one the workspace already has, or a
+ * new one with the config it is deployed with. */
 export type RolesNode = NodeBase &
   Readonly<{
     /** Discriminator identifying this node as a Roles modifier. */
@@ -314,15 +316,21 @@ function loadCodegen(): CodegenData {
 /**
  * Creates a constellation scoped to a workspace and chain.
  *
- * Use bracket access to reference existing accounts (vaults and other
- * applied constellation nodes) or define new ones:
+ * Bracket access names an account of that workspace **on that chain** — a
+ * vault, or a node an earlier constellation deployed. A label the chain has no
+ * account for reads as a new node instead, so it has to be given the config it
+ * is deployed with.
+ *
  * ```ts
  * const eth = constellation({ workspace: 'GG', label: 'my constellation', chain: 1 })
  *
- * const dao = eth.safe['GG DAO']              // existing account ref
- * const roles = eth.roles['GG DAO']           // existing roles ref
+ * const dao = eth.safe['GG DAO']              // the safe of that name on chain 1
+ * const roles = eth.roles['GG DAO']           // the roles mod of that name
  * const newSafe = eth.safe['New Safe']({ nonce: 0n, threshold: 2, owners: [...], modules: [...] })
  * ```
+ *
+ * Names come from the last `pull-org`, so an account deployed since then is
+ * not one yet.
  */
 export function constellation<
   const C extends CodegenData = GeneratedCodegen,

@@ -23,15 +23,25 @@ type PushOpts = {
 }
 
 /**
- * Resolves node references and pushes the constellation specification to the API.
+ * Applies the given nodes as the next revision of the constellations they
+ * belong to, and answers with a url per constellation to review and deploy.
  *
+ * Each node travels with what it was actually given, never with the onchain
+ * state a `pull` filled it with for reading — so a node passed as a bare
+ * reference declares nothing and leaves the account it names alone. Nodes
+ * naming each other travel as references and are substituted for addresses
+ * once those are derived at deploy.
+ *
+ * Passing an object names each node by its key; passing an array names them by
+ * position. Either way the name is the node's `ref`, which is how the app
+ * follows a node from one revision to the next.
  *
  * ```ts
  * const eth = constellation({ workspace: 'GG', label: 'my constellation', chain: 1 })
  * const dao = eth.safe['GG DAO']
  * const roles = eth.roles['New Roles']({ nonce: 0n, target: dao, owner: dao, avatar: dao })
  *
- * await push([dao, roles])
+ * await push({ dao, roles })
  * ```
  */
 export async function push(
