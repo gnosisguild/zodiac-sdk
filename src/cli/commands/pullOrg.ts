@@ -1,3 +1,8 @@
+import type {
+  Address,
+  ChainId,
+  ResolveConstellationPayload,
+} from '@zodiaceco/api-types'
 import type { ResolvedConfig } from '../config'
 import { ApiClient } from '../../api'
 import { getAddress } from 'ethers'
@@ -36,6 +41,47 @@ const toLiteral = (value: unknown, indent = 0): string => {
   return String(value)
 }
 
+type NodeType = 'SAFE' | 'ROLES' | 'DELAY'
+
+/**
+ * An account written as the specification node that names it and declares
+ * nothing else.
+ *
+ * The `ref` is required of every node and has to be distinct, but nothing
+ * reads it back — the result comes aligned with the request.
+ *
+ * Spelled out per type rather than passed through: `/accounts` answers with
+ * the same three names as an enum, whose members are types of their own, and
+ * a node is only a node once it says which of the three it is.
+ */
+const asNodeReference = (
+  {
+    type,
+    chain,
+    address,
+  }: { type: string; chain: ChainId; address: Lowercase<Address> },
+  index: number
+): ResolveConstellationPayload['specification'][number] => {
+  const node = { ref: `account_${index}`, chain, address }
+
+  switch (asNodeType(type)) {
+    case 'SAFE':
+      return { ...node, type: 'SAFE' }
+    case 'ROLES':
+      return { ...node, type: 'ROLES' }
+    case 'DELAY':
+      return { ...node, type: 'DELAY' }
+  }
+}
+
+const asNodeType = (type: string): NodeType => {
+  if (type === 'SAFE' || type === 'ROLES' || type === 'DELAY') {
+    return type
+  }
+
+  throw new Error(`Cannot describe an account of type "${type}"`)
+}
+
 /**
  * Whether a key can be written without quotes. Chain ids are grouping keys in
  * the generated data, and an unquoted number keys the `as const` type by chain
@@ -58,13 +104,17 @@ export const pullOrg = async (config: ResolvedConfig) => {
   // account it names and completes in an editor. Only what a constellation
   // declares is ever pushed back, so this is for reading, not a declaration.
   //
-  // Every account here holds code onchain: `/accounts` admits one only once
-  // it has been seen to. That is what makes them safe to ask about, since
-  // `/resolve` reads chain and cannot describe an address nothing was
-  // deployed to. Nothing re-checks it — the listing carries no signal a
-  // prediction would fail, so a proxy for it here would be one to trust
-  // rather than one that works. Ask everything, and let it say when its
-  // indexing has not reached one yet.
+  // Each account is named by its address and nothing else. `/resolve`
+  // resolves a node it has no address for against the setup safe of whoever
+  // holds the API key — which describes the account *that* caller would
+  // deploy, not the one being asked about — and it merges declarations over
+  // what it reads. Sending an address and no declarations leaves it nothing
+  // to derive and nothing to merge, so the answer is the account itself, the
+  // same for every key.
+  //
+  // Asking about every listed account is safe for the same reason: `/accounts`
+  // admits one only once it has been seen to hold code, so every address here
+  // is one that can be read from chain.
   const allAccounts = workspaceAccounts.flatMap((ws) => ws.accounts)
   const resolved = new Map<
     string,
@@ -75,10 +125,7 @@ export const pullOrg = async (config: ResolvedConfig) => {
     const { result } = await client.resolveConstellation(
       workspaceAccounts[0].workspaceId, // any workspace works for the resolve route
       {
-        accounts: allAccounts.map(({ chain, address }) => ({
-          chain,
-          address,
-        })),
+        specification: allAccounts.map(asNodeReference),
       }
     )
 
@@ -107,7 +154,6 @@ export const pullOrg = async (config: ResolvedConfig) => {
       DELAY: delays,
     } as const
 
-    type NodeType = 'SAFE' | 'ROLES' | 'DELAY'
     const isNodeType = (type: string): type is NodeType =>
       type === 'SAFE' || type === 'ROLES' || type === 'DELAY'
 

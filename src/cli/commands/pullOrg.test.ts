@@ -122,16 +122,18 @@ mock.module('../../api', () => ({
     }
     resolveConstellation(
       _workspaceId: string,
-      payload: { accounts: { chain: number; address: string }[] }
+      payload: {
+        specification: { chain: number; address: string; type: string }[]
+      }
     ) {
-      resolvedAccounts = payload.accounts
+      resolvedAccounts = payload.specification
 
       return Promise.resolve({
         result: [
           mockResolvedSafe,
           mockResolvedRolesMod,
           mockResolvedOwner,
-          ...payload.accounts.slice(3).map(({ chain, address }) => ({
+          ...payload.specification.slice(3).map(({ chain, address }) => ({
             type: 'SAFE',
             chain,
             address,
@@ -153,21 +155,48 @@ describe('pullOrg', () => {
     resolvedAccounts = []
   })
 
-  // An address is the whole of what `/resolve` reads, and it identifies the
-  // account for every caller — unlike a spec node without one, whose address
-  // the endpoint would have had to derive per API key.
-  it('asks about every listed account by chain and address', async () => {
+  // An address identifies the account for every caller. A node without one is
+  // resolved against the setup safe of whoever's API key asked, which answers
+  // for the account *that* caller would deploy — so every account is named by
+  // its address, and none of them declares anything to merge over what the
+  // endpoint reads.
+  it('names every listed account by address and declares nothing', async () => {
     mkdirSync(tmpDir, { recursive: true })
 
     const { pullOrg } = await import('./pullOrg')
     await pullOrg({ apiKey: 'zodiac_test-key', rootDir: tmpDir })
 
     expect(resolvedAccounts).toEqual([
-      { chain: 1, address: '0xaaaa00000000000000000000000000000000aaaa' },
-      { chain: 1, address: '0xffff00000000000000000000000000000000ffff' },
-      { chain: 1, address: '0xdddd00000000000000000000000000000000dddd' },
-      { chain: 100, address: '0x9999000000000000000000000000000000009999' },
-      { chain: 1, address: '0x8888000000000000000000000000000000008888' },
+      {
+        ref: 'account_0',
+        type: 'SAFE',
+        chain: 1,
+        address: '0xaaaa00000000000000000000000000000000aaaa',
+      },
+      {
+        ref: 'account_1',
+        type: 'ROLES',
+        chain: 1,
+        address: '0xffff00000000000000000000000000000000ffff',
+      },
+      {
+        ref: 'account_2',
+        type: 'SAFE',
+        chain: 1,
+        address: '0xdddd00000000000000000000000000000000dddd',
+      },
+      {
+        ref: 'account_3',
+        type: 'SAFE',
+        chain: 100,
+        address: '0x9999000000000000000000000000000000009999',
+      },
+      {
+        ref: 'account_4',
+        type: 'SAFE',
+        chain: 1,
+        address: '0x8888000000000000000000000000000000008888',
+      },
     ])
   })
 
