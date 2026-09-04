@@ -122,14 +122,32 @@ function deriveRefs(
   return { byIdentity, byLabel }
 }
 
+/**
+ * What situates a node rather than configures it: which account it is, and how
+ * the workspace holds it. Always sent — none of it reaches the onchain diff,
+ * and dropping it would lose the label and the vault it belongs to.
+ */
+const IDENTITY_FIELDS = new Set(['type', 'chain', 'address', 'label', 'vault'])
+
 function nodeToSpec(
   node: ConstellationNodeInternal,
   refs: RefsIndex
 ): ApplyConstellationPayload['specification'][number] {
-  const { id, _constellation, ...rest } = node as Record<string, any>
+  const { id, _constellation, _declared, ...rest } = node as Record<string, any>
+  // A node built by hand rather than through an accessor says nothing about
+  // what it declares, so there is nothing to go on and everything travels.
+  const declared = Array.isArray(_declared) ? new Set<string>(_declared) : null
   const spec: Record<string, any> = {}
 
   for (const [key, value] of Object.entries(rest)) {
+    // A referenced node carries the state `pull` read from chain. Sending it
+    // back would declare it: an owner added since the pull would be removed
+    // again by the deployment, without anyone having written that down. So
+    // state travels only when this node actually declares it.
+    if (declared != null && !IDENTITY_FIELDS.has(key) && !declared.has(key)) {
+      continue
+    }
+
     if (node.type === 'ROLES' && key === 'roles' && value != null) {
       spec.roles = describeRoles(
         value as Record<string, RoleDef | null>,

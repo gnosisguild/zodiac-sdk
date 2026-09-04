@@ -155,6 +155,14 @@ export type RolesNode = NodeBase &
 export type ConstellationNode = SafeNode | RolesNode
 export type ConstellationNodeInternal = ConstellationNode & {
   _constellation: ConstellationMeta
+  /**
+   * The state fields this node actually declares.
+   *
+   * A referenced node carries everything `pull` read from chain so it reads
+   * well and completes in an editor, but a reference is not a declaration —
+   * only what was passed explicitly is pushed. Empty for a bare reference.
+   */
+  _declared: readonly string[]
 }
 
 type NewSafeProps = {
@@ -327,12 +335,14 @@ export function constellation<
   }
 
   function makeNodeRef(
-    data: Record<string, any>
+    data: Record<string, any>,
+    declared: readonly string[]
   ): Readonly<Record<string, any>> {
     return Object.freeze({
       ...data,
       chain: opts.chain,
       _constellation: meta,
+      _declared: declared,
     })
   }
 
@@ -353,18 +363,24 @@ export function constellation<
         // original, so prefer `existing.label` when it's available.
         const specLabel: string = existing?.label ?? name
         const fn = (overrides?: Record<string, any>) =>
-          makeNodeRef({
-            type,
-            ...(existing || {}),
-            ...overrides,
-            label: specLabel,
-          })
+          makeNodeRef(
+            {
+              type,
+              ...(existing || {}),
+              ...overrides,
+              label: specLabel,
+            },
+            Object.keys(overrides ?? {})
+          )
+        // Bare access — `eth.safe['Treasury']` rather than a call — declares
+        // nothing. It reads as the account it names, and pushes as a reference.
         Object.assign(fn, {
           type,
           ...(existing || {}),
           label: specLabel,
           chain: opts.chain,
           _constellation: meta,
+          _declared: [],
         })
         cache.set(name, fn)
         return fn

@@ -19,6 +19,57 @@ describe('push', () => {
     )
   }
 
+  // `pull` fills a referenced node with what it read from chain so it reads
+  // well in an editor. Pushing that back would declare it, and an owner added
+  // since the pull would be removed again by the deployment — a change nobody
+  // wrote down. So a reference travels as a reference.
+  it('pushes a referenced account as a reference, not a declaration', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.safe['GG DAO']], { api })
+
+    expect(lastPayload().specification[0]).toEqual({
+      ref: '0',
+      type: 'SAFE',
+      chain: 1,
+      address: '0xcccc00000000000000000000000000000000cccc',
+      label: 'GG DAO',
+      vault: true,
+    })
+  })
+
+  it('pushes only the fields a reference declares', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.safe['Treasury']({ threshold: 3 })], { api })
+
+    const spec = lastPayload().specification[0]
+
+    expect(spec.threshold).toBe(3)
+    // Left alone rather than restated at whatever the pull happened to read.
+    expect(spec).not.toHaveProperty('owners')
+    expect(spec).not.toHaveProperty('modules')
+  })
+
+  it('pushes everything a new node declares', async () => {
+    const eth = setup()
+    const owners = ['0xaaaa00000000000000000000000000000000aaaa'] as const
+
+    const { api, lastPayload } = mockApi()
+    await push(
+      [eth.safe['New Safe']({ nonce: 0n, threshold: 1, owners: [...owners] })],
+      { api }
+    )
+
+    expect(lastPayload().specification[0]).toMatchObject({
+      nonce: '0',
+      threshold: 1,
+      owners: [...owners],
+    })
+  })
+
   it('resolves nested node refs to $ref strings', async () => {
     const eth = setup()
     const dao = eth.safe['GG DAO']
