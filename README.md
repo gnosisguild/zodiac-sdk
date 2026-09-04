@@ -68,7 +68,9 @@ const eth = constellation({
 
 ### Referencing existing accounts
 
-Bracket access gives you existing Safes and Roles mods from the selected workspace — both **vault accounts** (manually-promoted entries surfaced in the workspace UI) and any **constellation accounts** previously created by a `push()`. The codegen records them under the same `accounts` map, marked with a `vault` flag for the subset that are also workspace vaults. Names auto-complete from the codegen output.
+Bracket access gives you existing Safes and Roles mods from the selected workspace and chain — both **vault accounts** (manually-promoted entries surfaced in the workspace UI) and any **constellation accounts** previously created by a `push()`. The codegen records them under the same `accounts` map, marked with a `vault` flag for the subset that are also workspace vaults. Names auto-complete from the codegen output.
+
+A label only ever names an account on the constellation's own chain. The same name on another chain is a different account whose address means nothing here, so it reads as a new node rather than as a reference — two workspaces can both have a `Treasury` on mainnet and on Gnosis without either having to be addressed by address.
 
 ```ts
 // Reference an existing Safe — no invocation needed

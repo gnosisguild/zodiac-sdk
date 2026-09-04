@@ -51,6 +51,10 @@ describe('push', () => {
     // Left alone rather than restated at whatever the pull happened to read.
     expect(spec).not.toHaveProperty('owners')
     expect(spec).not.toHaveProperty('modules')
+    // The address is not one of those fields. It is which account this is —
+    // without it the node would be a creation, and a deployer other than the
+    // last one would derive a second account under the same label.
+    expect(spec.address).toBe(codegen.accounts.GG.safes[1].Treasury.address)
   })
 
   it('pushes everything a new node declares', async () => {

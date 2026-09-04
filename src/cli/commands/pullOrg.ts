@@ -29,12 +29,20 @@ const toLiteral = (value: unknown, indent = 0): string => {
     if (entries.length === 0) return '{}'
     const props = entries.map(
       ([k, v]) =>
-        `${childPad}${/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : JSON.stringify(k)}: ${toLiteral(v, indent + 1)}`
+        `${childPad}${isBareKey(k) ? k : JSON.stringify(k)}: ${toLiteral(v, indent + 1)}`
     )
     return `{\n${props.join(',\n')},\n${pad}}`
   }
   return String(value)
 }
+
+/**
+ * Whether a key can be written without quotes. Chain ids are grouping keys in
+ * the generated data, and an unquoted number keys the `as const` type by chain
+ * id — quoted, it would key by a string the callers never hold.
+ */
+const isBareKey = (key: string): boolean =>
+  /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) || /^\d+$/.test(key)
 
 export const pullOrg = async (config: ResolvedConfig) => {
   const client = new ApiClient({
@@ -80,16 +88,18 @@ export const pullOrg = async (config: ResolvedConfig) => {
     })
   }
 
-  // Group accounts by type into separate bracket-access namespaces:
-  // `safes`, `rolesMods`, `delays`. This way `eth.safe[...]`
-  // IntelliSense only suggests SAFE labels, and the label-collision
-  // suffix only kicks in when two accounts **of the same type** share
-  // a label.
+  // Group accounts by type and then by chain into separate bracket-access
+  // namespaces: `safes[chain]`, `rolesMods[chain]`, `delays[chain]`. This way
+  // `eth.safe[...]` IntelliSense only suggests SAFE labels deployed on the
+  // constellation's own chain, and the label-collision suffix only kicks in
+  // where a label is genuinely ambiguous — same type, same chain.
+  type AccountsByChain = Record<number, Record<string, unknown>>
+
   const accountsRecord: Record<string, unknown> = {}
   for (const ws of workspaceAccounts) {
-    const safes: Record<string, unknown> = {}
-    const rolesMods: Record<string, unknown> = {}
-    const delays: Record<string, unknown> = {}
+    const safes: AccountsByChain = {}
+    const rolesMods: AccountsByChain = {}
+    const delays: AccountsByChain = {}
 
     const bucketsByType = {
       SAFE: safes,
@@ -106,16 +116,22 @@ export const pullOrg = async (config: ResolvedConfig) => {
     // label-addressed namespace, so they stay out of the codegen.
     // Vault entries always carry one.
 
-    // Count labels per type so we only suffix within-type collisions.
-    const labelCountByType: Record<NodeType, Map<string, number>> = {
-      SAFE: new Map(),
-      ROLES: new Map(),
-      DELAY: new Map(),
-    }
+    // Count labels per namespace so we only suffix collisions a constellation
+    // could actually run into. Two safes named `Treasury` on different chains
+    // never compete for a key, because a constellation only ever sees one of
+    // those chains.
+    const namespaceKey = (type: NodeType, chain: number) => `${type}:${chain}`
+    const labelCounts = new Map<string, Map<string, number>>()
+
     for (const account of ws.accounts) {
       const { label } = account
       if (label == null || !isNodeType(account.type)) continue
-      const counts = labelCountByType[account.type]
+      const key = namespaceKey(account.type, account.chain)
+      let counts = labelCounts.get(key)
+      if (!counts) {
+        counts = new Map()
+        labelCounts.set(key, counts)
+      }
       counts.set(label, (counts.get(label) ?? 0) + 1)
     }
 
@@ -123,12 +139,14 @@ export const pullOrg = async (config: ResolvedConfig) => {
       const { label } = account
       if (label == null || !isNodeType(account.type)) continue
       const onChain = resolved.get(account.id)
-      const counts = labelCountByType[account.type]
+      const counts = labelCounts.get(namespaceKey(account.type, account.chain))
       const key =
-        (counts.get(label) ?? 0) > 1
+        (counts?.get(label) ?? 0) > 1
           ? `${label} (${getAddress(account.address)})`
           : label
-      bucketsByType[account.type][key] = {
+      const byChain = bucketsByType[account.type]
+      const byLabel = (byChain[account.chain] ??= {})
+      byLabel[key] = {
         id: account.id,
         label,
         address: account.address,

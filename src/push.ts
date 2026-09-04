@@ -124,8 +124,15 @@ function deriveRefs(
 
 /**
  * What situates a node rather than configures it: which account it is, and how
- * the workspace holds it. Always sent — none of it reaches the onchain diff,
- * and dropping it would lose the label and the vault it belongs to.
+ * the workspace holds it. Always sent, even for a reference that declares
+ * nothing — none of it reaches the onchain diff, and leaving it out would lose
+ * the label and the vault the node belongs to.
+ *
+ * `address` above all. It is what the pull resolved the label to, and the only
+ * thing that says which account this is: a node without one is a creation, and
+ * its address is derived from whoever deploys. Drop it and a second deployer
+ * provisions a duplicate under the same label rather than reconfiguring the
+ * account that is already there.
  */
 const IDENTITY_FIELDS = new Set(['type', 'chain', 'address', 'label', 'vault'])
 

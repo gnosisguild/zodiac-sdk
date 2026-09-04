@@ -35,19 +35,25 @@ type Account = {
   vault: boolean
 }
 
+type AccountsByLabel = Readonly<Record<string, Account>>
+
 /**
- * Accounts grouped by node type within a workspace. Per-type maps keep
- * bracket-accessor namespaces separate: a SAFE and a ROLES mod sharing a
- * label don't collide, and `eth.safe[...]` IntelliSense doesn't suggest
- * ROLES mod labels (and vice versa).
+ * A workspace's accounts, grouped by node type and then by chain.
+ *
+ * Both groupings keep bracket-accessor namespaces apart, so that a label is
+ * only ever ambiguous between accounts a constellation could actually choose
+ * between: a SAFE and a ROLES mod sharing a label don't collide, and neither
+ * do two safes of the same name on different chains.
  */
 type WorkspaceAccounts = {
   workspaceId: UUID
   workspaceName: string
-  safes: Readonly<Record<string, Account>>
-  rolesMods: Readonly<Record<string, Account>>
-  delays: Readonly<Record<string, Account>>
+  safes: AccountsByChain
+  rolesMods: AccountsByChain
+  delays: AccountsByChain
 }
+
+type AccountsByChain = { readonly [chain in ChainId]?: AccountsByLabel }
 
 /** Shape of the codegen data produced by `zodiac pull-org`. */
 export type CodegenData = {
@@ -78,15 +84,27 @@ type ConstellationInternalOpts<C extends CodegenData> = {
 
 type Prettify<T> = { readonly [K in keyof T]: T[K] } & {}
 
+/**
+ * The accounts of one type that a constellation on `Ch` can name. Accounts on
+ * every other chain are not in scope: their addresses mean nothing here, so
+ * offering them would only invite a node that carries a foreign address under
+ * this constellation's chain.
+ */
+type ChainEntries<A, Ch extends ChainId> = Ch extends keyof A
+  ? NonNullable<A[Ch]>
+  : {}
+
 type SafeEntries<
   C extends CodegenData,
   W extends keyof C['accounts'],
-> = C['accounts'][W]['safes']
+  Ch extends ChainId,
+> = ChainEntries<C['accounts'][W]['safes'], Ch>
 
 type RolesEntries<
   C extends CodegenData,
   W extends keyof C['accounts'],
-> = C['accounts'][W]['rolesMods']
+  Ch extends ChainId,
+> = ChainEntries<C['accounts'][W]['rolesMods'], Ch>
 
 type NodeType = 'SAFE' | 'ROLES' | 'DELAY'
 
@@ -273,10 +291,10 @@ type ConstellationResult<
 > = {
   /** Access existing safes by label or create new ones with a new label.
    * Only SAFE-typed accounts are suggested in IntelliSense. */
-  safe: EntityAccessor<'SAFE', SafeEntries<C, W>, Ch, NewSafeProps>
+  safe: EntityAccessor<'SAFE', SafeEntries<C, W, Ch>, Ch, NewSafeProps>
   /** Access existing roles modifiers by label or create new ones with a
    * new label. Only ROLES-typed accounts are suggested in IntelliSense. */
-  roles: EntityAccessor<'ROLES', RolesEntries<C, W>, Ch, NewRolesProps>
+  roles: EntityAccessor<'ROLES', RolesEntries<C, W, Ch>, Ch, NewRolesProps>
   /** Resolve a user's personal safe address on the constellation's chain. */
   user: UserAccessor<C, Ch>
 }
@@ -320,10 +338,16 @@ export function constellation<
   const safesByLabel: Record<string, Account> = {}
   const rolesByLabel: Record<string, Account> = {}
   if (ws) {
-    for (const [label, account] of Object.entries(ws.safes)) {
+    // Only this chain's accounts are in scope. A label resolved from another
+    // chain would hand back an address that names nothing here, and the node
+    // would still be pushed under this constellation's chain.
+    const onThisChain = (byChain: AccountsByChain): AccountsByLabel =>
+      byChain[opts.chain] ?? {}
+
+    for (const [label, account] of Object.entries(onThisChain(ws.safes))) {
       safesByLabel[label] = account
     }
-    for (const [label, account] of Object.entries(ws.rolesMods)) {
+    for (const [label, account] of Object.entries(onThisChain(ws.rolesMods))) {
       rolesByLabel[label] = account
     }
   }
