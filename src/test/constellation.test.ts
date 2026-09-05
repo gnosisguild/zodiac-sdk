@@ -28,7 +28,9 @@ describe('constellation API', () => {
       const eth = setup()
       const treasury = eth.safe['Treasury']
       expect(treasury.label).toBe('Treasury')
-      expect(treasury.address).toBe(codegen.accounts.GG.safes.Treasury.address)
+      expect(treasury.address).toBe(
+        codegen.accounts.GG.safes[1].Treasury.address
+      )
     })
 
     it('returns a node ref with existing properties merged with overrides', () => {
@@ -36,7 +38,7 @@ describe('constellation API', () => {
       const ggDao = eth.safe['GG DAO']({ threshold: 5 })
 
       expect(ggDao.label).toBe('GG DAO')
-      expect(ggDao.address).toBe(codegen.accounts.GG.safes['GG DAO'].address)
+      expect(ggDao.address).toBe(codegen.accounts.GG.safes[1]['GG DAO'].address)
       expect(ggDao.threshold).toBe(5)
       expect(ggDao.type).toBe('SAFE')
     })
@@ -225,6 +227,42 @@ describe('constellation API', () => {
 
       expect(roles.target).toBe(safe)
       expect(safe.modules).toContain(eth.roles['New Roles'])
+    })
+  })
+
+  describe('chain scoping', () => {
+    it('resolves a label to the account on the constellation chain', () => {
+      const eth = constellation(
+        { workspace: 'GG', label: 'l', chain: 1 },
+        { codegen }
+      )
+      const gno = constellation(
+        { workspace: 'GG', label: 'l', chain: 100 },
+        { codegen }
+      )
+
+      // The same label, two accounts. Neither key is disambiguated, because a
+      // constellation only ever sees one of the two chains.
+      expect(eth.safe['Treasury'].address).toBe(
+        codegen.accounts.GG.safes[1].Treasury.address
+      )
+      expect(gno.safe['Treasury'].address).toBe(
+        codegen.accounts.GG.safes[100].Treasury.address
+      )
+    })
+
+    it('does not resolve a label that lives on another chain', () => {
+      const gno = constellation(
+        { workspace: 'GG', label: 'l', chain: 100 },
+        { codegen }
+      )
+
+      // `GG DAO` is a mainnet safe. Its address names nothing on Gnosis, and
+      // the node would be pushed as chain 100 regardless — so it reads as a
+      // new node instead.
+      const ggDao = gno.safe['GG DAO']
+      // @ts-expect-error — not an account on this chain
+      expect(ggDao.address).toBeUndefined()
     })
   })
 

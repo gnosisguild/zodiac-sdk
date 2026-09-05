@@ -35,19 +35,25 @@ type Account = {
   vault: boolean
 }
 
+type AccountsByLabel = Readonly<Record<string, Account>>
+
 /**
- * Accounts grouped by node type within a workspace. Per-type maps keep
- * bracket-accessor namespaces separate: a SAFE and a ROLES mod sharing a
- * label don't collide, and `eth.safe[...]` IntelliSense doesn't suggest
- * ROLES mod labels (and vice versa).
+ * A workspace's accounts, grouped by node type and then by chain.
+ *
+ * Both groupings keep bracket-accessor namespaces apart, so that a label is
+ * only ever ambiguous between accounts a constellation could actually choose
+ * between: a SAFE and a ROLES mod sharing a label don't collide, and neither
+ * do two safes of the same name on different chains.
  */
 type WorkspaceAccounts = {
   workspaceId: UUID
   workspaceName: string
-  safes: Readonly<Record<string, Account>>
-  rolesMods: Readonly<Record<string, Account>>
-  delays: Readonly<Record<string, Account>>
+  safes: AccountsByChain
+  rolesMods: AccountsByChain
+  delays: AccountsByChain
 }
+
+type AccountsByChain = { readonly [chain in ChainId]?: AccountsByLabel }
 
 /** Shape of the codegen data produced by `zodiac pull-org`. */
 export type CodegenData = {
@@ -78,15 +84,27 @@ type ConstellationInternalOpts<C extends CodegenData> = {
 
 type Prettify<T> = { readonly [K in keyof T]: T[K] } & {}
 
+/**
+ * The accounts of one type that a constellation on `Ch` can name. Accounts on
+ * every other chain are not in scope: their addresses mean nothing here, so
+ * offering them would only invite a node that carries a foreign address under
+ * this constellation's chain.
+ */
+type ChainEntries<A, Ch extends ChainId> = Ch extends keyof A
+  ? NonNullable<A[Ch]>
+  : {}
+
 type SafeEntries<
   C extends CodegenData,
   W extends keyof C['accounts'],
-> = C['accounts'][W]['safes']
+  Ch extends ChainId,
+> = ChainEntries<C['accounts'][W]['safes'], Ch>
 
 type RolesEntries<
   C extends CodegenData,
   W extends keyof C['accounts'],
-> = C['accounts'][W]['rolesMods']
+  Ch extends ChainId,
+> = ChainEntries<C['accounts'][W]['rolesMods'], Ch>
 
 type NodeType = 'SAFE' | 'ROLES' | 'DELAY'
 
@@ -114,7 +132,8 @@ type NodeBase = Readonly<{
   nonce?: bigint
 }>
 
-/** A safe node spec — existing vault ref or new safe with required config. */
+/** A safe node — a reference to one the workspace already has, or a new one
+ * with the config it is deployed with. */
 export type SafeNode = NodeBase &
   Readonly<{
     /** Discriminator identifying this node as a Safe. */
@@ -129,7 +148,8 @@ export type SafeNode = NodeBase &
     vault?: boolean
   }>
 
-/** A roles modifier node spec — existing vault ref or new roles with modifier config. */
+/** A roles modifier node — a reference to one the workspace already has, or a
+ * new one with the config it is deployed with. */
 export type RolesNode = NodeBase &
   Readonly<{
     /** Discriminator identifying this node as a Roles modifier. */
@@ -155,6 +175,14 @@ export type RolesNode = NodeBase &
 export type ConstellationNode = SafeNode | RolesNode
 export type ConstellationNodeInternal = ConstellationNode & {
   _constellation: ConstellationMeta
+  /**
+   * The state fields this node actually declares.
+   *
+   * A referenced node carries everything `pull` read from chain so it reads
+   * well and completes in an editor, but a reference is not a declaration —
+   * only what was passed explicitly is pushed. Empty for a bare reference.
+   */
+  _declared: readonly string[]
 }
 
 type NewSafeProps = {
@@ -213,7 +241,7 @@ type ExistingNodeAccessor<
   NP extends Record<string, any>,
 > = Readonly<Prettify<E & { type: Type; label: K; chain: Ch }>> &
   (<
-    O extends {
+    const O extends {
       [P in Exclude<keyof E & string, 'id' | 'label'>]?: any
     } & Partial<NP> = {},
   >(
@@ -232,7 +260,10 @@ type NewNodeAccessor<
   Ch extends ChainId,
   NP extends Record<string, any>,
 > = Readonly<Prettify<{ type: Type; label: string; chain: Ch }>> &
-  (<P extends NP>(
+  // `const` so a node reads back the values it was written with — `threshold: 2`
+  // rather than `number`. Every prop it widens into is already `readonly`, so
+  // the tuples this infers stay assignable.
+  (<const P extends NP>(
     props: P
   ) => Readonly<Prettify<P & { type: Type; label: string; chain: Ch }>>)
 
@@ -265,10 +296,10 @@ type ConstellationResult<
 > = {
   /** Access existing safes by label or create new ones with a new label.
    * Only SAFE-typed accounts are suggested in IntelliSense. */
-  safe: EntityAccessor<'SAFE', SafeEntries<C, W>, Ch, NewSafeProps>
+  safe: EntityAccessor<'SAFE', SafeEntries<C, W, Ch>, Ch, NewSafeProps>
   /** Access existing roles modifiers by label or create new ones with a
    * new label. Only ROLES-typed accounts are suggested in IntelliSense. */
-  roles: EntityAccessor<'ROLES', RolesEntries<C, W>, Ch, NewRolesProps>
+  roles: EntityAccessor<'ROLES', RolesEntries<C, W, Ch>, Ch, NewRolesProps>
   /** Resolve a user's personal safe address on the constellation's chain. */
   user: UserAccessor<C, Ch>
 }
@@ -288,15 +319,21 @@ function loadCodegen(): CodegenData {
 /**
  * Creates a constellation scoped to a workspace and chain.
  *
- * Use bracket access to reference existing accounts (vaults and other
- * applied constellation nodes) or define new ones:
+ * Bracket access names an account of that workspace **on that chain** — a
+ * vault, or a node an earlier constellation deployed. A label the chain has no
+ * account for reads as a new node instead, so it has to be given the config it
+ * is deployed with.
+ *
  * ```ts
  * const eth = constellation({ workspace: 'GG', label: 'my constellation', chain: 1 })
  *
- * const dao = eth.safe['GG DAO']              // existing account ref
- * const roles = eth.roles['GG DAO']           // existing roles ref
+ * const dao = eth.safe['GG DAO']              // the safe of that name on chain 1
+ * const roles = eth.roles['GG DAO']           // the roles mod of that name
  * const newSafe = eth.safe['New Safe']({ nonce: 0n, threshold: 2, owners: [...], modules: [...] })
  * ```
+ *
+ * Names come from the last `pull-org`, so an account deployed since then is
+ * not one yet.
  */
 export function constellation<
   const C extends CodegenData = GeneratedCodegen,
@@ -312,10 +349,16 @@ export function constellation<
   const safesByLabel: Record<string, Account> = {}
   const rolesByLabel: Record<string, Account> = {}
   if (ws) {
-    for (const [label, account] of Object.entries(ws.safes)) {
+    // Only this chain's accounts are in scope. A label resolved from another
+    // chain would hand back an address that names nothing here, and the node
+    // would still be pushed under this constellation's chain.
+    const onThisChain = (byChain: AccountsByChain): AccountsByLabel =>
+      byChain[opts.chain] ?? {}
+
+    for (const [label, account] of Object.entries(onThisChain(ws.safes))) {
       safesByLabel[label] = account
     }
-    for (const [label, account] of Object.entries(ws.rolesMods)) {
+    for (const [label, account] of Object.entries(onThisChain(ws.rolesMods))) {
       rolesByLabel[label] = account
     }
   }
@@ -327,12 +370,14 @@ export function constellation<
   }
 
   function makeNodeRef(
-    data: Record<string, any>
+    data: Record<string, any>,
+    declared: readonly string[]
   ): Readonly<Record<string, any>> {
     return Object.freeze({
       ...data,
       chain: opts.chain,
       _constellation: meta,
+      _declared: declared,
     })
   }
 
@@ -353,18 +398,24 @@ export function constellation<
         // original, so prefer `existing.label` when it's available.
         const specLabel: string = existing?.label ?? name
         const fn = (overrides?: Record<string, any>) =>
-          makeNodeRef({
-            type,
-            ...(existing || {}),
-            ...overrides,
-            label: specLabel,
-          })
+          makeNodeRef(
+            {
+              type,
+              ...(existing || {}),
+              ...overrides,
+              label: specLabel,
+            },
+            Object.keys(overrides ?? {})
+          )
+        // Bare access — `eth.safe['Treasury']` rather than a call — declares
+        // nothing. It reads as the account it names, and pushes as a reference.
         Object.assign(fn, {
           type,
           ...(existing || {}),
           label: specLabel,
           chain: opts.chain,
           _constellation: meta,
+          _declared: [],
         })
         cache.set(name, fn)
         return fn
