@@ -46,6 +46,23 @@ zodiac pull
 
 This generates typed data in `.zodiac/` at your project root with your org's users and accounts (workspace vaults plus accounts that have been applied via a constellation). Add `.zodiac/` to your `.gitignore`.
 
+## Lifecycle
+
+State lives in three places — your code, the Zodiac OS database, and chain — and each command moves it in one direction:
+
+```
+your code  ──push──▶  Zodiac OS (revisions)  ──deploy (in the app)──▶  chain
+your code  ◀──pull──  Zodiac OS  ◀──────────────indexing────────────  chain
+```
+
+**`pull` reads, never writes.** It fetches your org's users and every account that exists on chain, and generates `.zodiac/`. A referenced node comes filled with its live on-chain state (owners, threshold, roles) so it reads well in the editor — that state is for reading, not something your code has declared.
+
+**`push` writes to the database, never to chain.** It stores your nodes as the constellation's next _revision_ and answers with a link to review it in the app. Re-pushing before a deployment replaces the pending revision rather than stacking new ones. Only what your code explicitly declares is stored: a bare reference like `eth.safe['Treasury']` travels as identity only, so an owner added through the app since your last pull is not silently reverted — while `eth.safe['Treasury']({ threshold: 3 })` declares exactly that field. Within a roles mod, unmentioned roles and allowances stay untouched; passing `null` for a key clears it.
+
+**Deploying happens in the app.** The review page diffs the revision against on-chain state and derives addresses for new nodes from the personal Safe of whoever triggers the deployment — so until a deployment settles them, two people looking at the same constellation see different addresses for new nodes. Deploying registers the accounts in Zodiac OS and executes the transactions. A constellation moves Draft → Pending → Deployed, and the next push starts a new revision back at Draft.
+
+**Then pull again.** Once the new accounts have been seen on chain, the next `pull` includes them, keyed by label per chain — from that point on, reference them (`eth.safe['New Safe']`) instead of re-declaring them with a `nonce`. `bun push` runs `pull-org` first via the `prepush` hook, so this mostly takes care of itself. The case to avoid is pushing from a stale checkout where an already-deployed node is still declared by `nonce`: the original deployer would re-derive the same address, but anyone else deploying that revision would create a duplicate account.
+
 ## Constellation API
 
 The `constellation()` function is the main SDK entry point. It returns an API for declaring account constellations — the set of Safes, Roles mods, and users that make up your on-chain setup.
