@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.3...v2.2.0) (2026-09-07)
+
+
+### Features
+
+* **cli:** say when a newer release is available, and how to get it ([#66](https://github.com/gnosisguild/zodiac-sdk/issues/66)) ([1a9a0db](https://github.com/gnosisguild/zodiac-sdk/commit/1a9a0db2c9a177ec9da72d84b3da2b1924ccaef3))
+
 ## [2.1.3](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.2...v2.1.3) (2026-09-07)
 
 
