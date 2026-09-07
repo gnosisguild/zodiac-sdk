@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 import { config as loadDotenv } from 'dotenv'
+import { checkForUpdate, ownVersion } from './checkForUpdate'
 import { init } from './commands/init'
 import { loadConfig } from './config'
 import { pullOrg } from './commands/pullOrg'
@@ -25,12 +26,30 @@ export const run = async (argv: string[] = process.argv) => {
   program
     .name('zodiac')
     .description('Zodiac SDK CLI – pull org data and contract ABIs')
-    .version('1.0.0')
+    .version(ownVersion())
     .option(
       '-c, --config <path>',
       'path to the config file',
       'zodiac.config.ts'
     )
+
+  // Started before the command so the registry round trip rides along with
+  // the command's own work, printed after it so the notice is the last thing
+  // on screen — and not at all when the command fails, where it would only
+  // distract from the error. On stderr, so piped output stays clean.
+  let updateNotice: Promise<string | null> = Promise.resolve(null)
+
+  program.hook('preAction', () => {
+    updateNotice = checkForUpdate()
+  })
+
+  program.hook('postAction', async () => {
+    const notice = await updateNotice
+
+    if (notice != null) {
+      console.warn(`\n${notice}`)
+    }
+  })
 
   program
     .command('pull')
