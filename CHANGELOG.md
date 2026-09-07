@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.3](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.2...v2.1.3) (2026-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* `.zodiac/` codegen nests accounts under a chain id (`accounts[ws].safes[chain][label]`). Regenerated on every pull, which `prepush` forces, but anything importing the generated module directly has to follow.
+
+### Bug Fixes
+
+* resolve accounts by address, push only what a constellation declares ([#64](https://github.com/gnosisguild/zodiac-sdk/issues/64)) ([e347cd7](https://github.com/gnosisguild/zodiac-sdk/commit/e347cd7b1608208b65a90671a904aa4f7b8d9456))
+
+
+### Miscellaneous Chores
+
+* release 2.1.3 ([22cafc9](https://github.com/gnosisguild/zodiac-sdk/commit/22cafc99af7c284b039494c3027f1079d0a54c1a))
+
 ## [2.1.2](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.1...v2.1.2) (2026-08-27)
 
 
