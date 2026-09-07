@@ -77,16 +77,25 @@ export class ApiClient {
     return res.json()
   }
 
+  /**
+   * Every account the workspaces of this org hold, grouped by workspace.
+   *
+   * Only accounts that exist on chain are listed, so every entry carries an
+   * address something was deployed to.
+   */
   listAccounts(): Promise<ListAccountsResult> {
     return this.get('accounts')
   }
 
+  /** Every member of this org, with the personal safes they have activated. */
   listUsers(): Promise<ListUsersResult> {
     return this.get('users')
   }
 
   /**
-   * Applies an accounts specification to Zodiac OS.
+   * Stores a specification as the constellation's next revision, and answers
+   * with a url to review and deploy it. Applying does not deploy anything, and
+   * re-applying an undeployed revision replaces it rather than stacking.
    */
   applyConstellation(
     workspaceId: UUID,
@@ -99,7 +108,12 @@ export class ApiClient {
   }
 
   /**
-   * Resolves an accounts specification to Zodiac OS.
+   * Reports what the accounts a specification names look like on chain.
+   *
+   * Declarations are merged over what is read, and a node with no address is
+   * resolved against the setup safe of whoever's API key asks — describing the
+   * account *that* caller would deploy. Name accounts by address and declare
+   * nothing to be told only what is there, the same for every key.
    */
   resolveConstellation(
     workspaceId: UUID,

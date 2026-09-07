@@ -19,6 +19,61 @@ describe('push', () => {
     )
   }
 
+  // `pull` fills a referenced node with what it read from chain so it reads
+  // well in an editor. Pushing that back would declare it, and an owner added
+  // since the pull would be removed again by the deployment — a change nobody
+  // wrote down. So a reference travels as a reference.
+  it('pushes a referenced account as a reference, not a declaration', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.safe['GG DAO']], { api })
+
+    expect(lastPayload().specification[0]).toEqual({
+      ref: '0',
+      type: 'SAFE',
+      chain: 1,
+      address: '0xcccc00000000000000000000000000000000cccc',
+      label: 'GG DAO',
+      vault: true,
+    })
+  })
+
+  it('pushes only the fields a reference declares', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.safe['Treasury']({ threshold: 3 })], { api })
+
+    const spec = lastPayload().specification[0]
+
+    expect(spec.threshold).toBe(3)
+    // Left alone rather than restated at whatever the pull happened to read.
+    expect(spec).not.toHaveProperty('owners')
+    expect(spec).not.toHaveProperty('modules')
+    // The address is not one of those fields. It is which account this is —
+    // without it the node would be a creation, and a deployer other than the
+    // last one would derive a second account under the same label.
+    expect(spec.address).toBe(codegen.accounts.GG.safes[1].Treasury.address)
+  })
+
+  it('pushes everything a new node declares', async () => {
+    const eth = setup()
+    const owners = ['0xaaaa00000000000000000000000000000000aaaa'] as const
+
+    const { api, lastPayload } = mockApi()
+    await push(
+      [eth.safe['New Safe']({ nonce: 0n, threshold: 1, owners: [...owners] })],
+      { api }
+    )
+
+    expect(lastPayload().specification[0]).toMatchObject({
+      nonce: '0',
+      threshold: 1,
+      owners: [...owners],
+    })
+  })
+
   it('resolves nested node refs to $ref strings', async () => {
     const eth = setup()
     const dao = eth.safe['GG DAO']
@@ -174,13 +229,34 @@ describe('push', () => {
     expect(specs[1].ref).toBe('treasury')
   })
 
-  it('rejects non-lowercase object keys as refs', async () => {
+  // A ref is the name a node is declared under, and export names are
+  // conventionally camelCase. Rejecting them would make the documented way of
+  // writing a constellation the one way it cannot be written.
+  it('takes any identifier as a ref', async () => {
     const eth = setup()
-    const assetSafe = eth.safe['GG DAO']
+    const { api, lastPayload } = mockApi()
+
+    await push({ assetSafe: eth.safe['GG DAO'] }, { api })
+
+    expect(lastPayload().specification[0].ref).toBe('assetSafe')
+  })
+
+  it('rejects a ref that opens a reference', async () => {
+    const eth = setup()
     const { api } = mockApi()
 
-    expect(push({ assetSafe }, { api })).rejects.toThrow(
-      'Invalid ref "assetSafe": refs must contain only lowercase letters, numbers, or underscores'
+    // `$treasury` already means "the node named treasury".
+    expect(push({ $treasury: eth.safe['GG DAO'] }, { api })).rejects.toThrow(
+      'Invalid ref "$treasury": a ref is a JavaScript identifier, and cannot start with "$"'
+    )
+  })
+
+  it('rejects a ref that is not an identifier', async () => {
+    const eth = setup()
+    const { api } = mockApi()
+
+    expect(push({ '2safe': eth.safe['GG DAO'] }, { api })).rejects.toThrow(
+      'Invalid ref "2safe": a ref is a JavaScript identifier, and cannot start with "$"'
     )
   })
 

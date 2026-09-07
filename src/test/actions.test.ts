@@ -80,7 +80,7 @@ describe('actions', () => {
       transfer({
         label: 'Grant payouts',
         tokens: [USDC],
-        bridge: [{ to: [gno.safe['GG DAO']], receive: [WETH] }],
+        bridge: [{ to: [gno.safe['Treasury']], receive: [WETH] }],
       })
     ).toEqual({
       label: 'Grant payouts',
@@ -91,7 +91,7 @@ describe('actions', () => {
         bridge: [
           {
             chain: 100,
-            to: ['0xcccc00000000000000000000000000000000cccc'],
+            to: ['0x9999000000000000000000000000000000009999'],
             receive: [WETH],
           },
         ],
@@ -119,7 +119,7 @@ describe('actions', () => {
       transfer({
         label: 'Grant payouts',
         tokens: [USDC],
-        bridge: [{ chain: 42161, to: [gno.safe['GG DAO']], receive: [WETH] }],
+        bridge: [{ chain: 42161, to: [gno.safe['Treasury']], receive: [WETH] }],
       })
     ).toThrow('spans chains "42161" and "100"')
   })
@@ -148,7 +148,7 @@ describe('actions', () => {
             transfer({
               label: 'Grant payouts',
               tokens: [USDC],
-              to: [gno.safe['GG DAO']],
+              to: [gno.safe['Treasury']],
             }),
           ],
         },
@@ -236,7 +236,11 @@ describe('push', () => {
       { workspace: 'GG', label: 'test', chain },
       { codegen }
     )
-    const safe = eth.safe['GG DAO']
+    const safe = eth.safe['Ops Safe']({
+      nonce: 0n,
+      threshold: 1,
+      owners: [],
+    })
 
     return [
       safe,

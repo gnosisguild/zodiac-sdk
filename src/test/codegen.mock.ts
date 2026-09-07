@@ -29,32 +29,48 @@ export const accounts = {
     workspaceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     workspaceName: 'GG',
     safes: {
-      'GG DAO': {
-        id: '11111111-1111-1111-1111-111111111111',
-        label: 'GG DAO',
-        address: '0xcccc00000000000000000000000000000000cccc',
-        chain: 1,
-        threshold: 3,
-        owners: [
-          '0xaaaa00000000000000000000000000000000aaaa',
-          '0xbbbb00000000000000000000000000000000bbbb',
-          '0xdddd00000000000000000000000000000000dddd',
-        ],
-        modules: [],
-        vault: true,
+      1: {
+        'GG DAO': {
+          id: '11111111-1111-1111-1111-111111111111',
+          label: 'GG DAO',
+          address: '0xcccc00000000000000000000000000000000cccc',
+          chain: 1,
+          threshold: 3,
+          owners: [
+            '0xaaaa00000000000000000000000000000000aaaa',
+            '0xbbbb00000000000000000000000000000000bbbb',
+            '0xdddd00000000000000000000000000000000dddd',
+          ],
+          modules: [],
+          vault: true,
+        },
+        Treasury: {
+          id: '22222222-2222-2222-2222-222222222222',
+          label: 'Treasury',
+          address: '0xeeee00000000000000000000000000000000eeee',
+          chain: 1,
+          threshold: 2,
+          owners: [
+            '0xaaaa00000000000000000000000000000000aaaa',
+            '0xbbbb00000000000000000000000000000000bbbb',
+          ],
+          modules: [],
+          vault: true,
+        },
       },
-      Treasury: {
-        id: '22222222-2222-2222-2222-222222222222',
-        label: 'Treasury',
-        address: '0xeeee00000000000000000000000000000000eeee',
-        chain: 1,
-        threshold: 2,
-        owners: [
-          '0xaaaa00000000000000000000000000000000aaaa',
-          '0xbbbb00000000000000000000000000000000bbbb',
-        ],
-        modules: [],
-        vault: true,
+      // Same label as the mainnet safe, a different account. A constellation
+      // only ever sees one chain, so neither key needs disambiguating.
+      100: {
+        Treasury: {
+          id: '44444444-4444-4444-4444-444444444444',
+          label: 'Treasury',
+          address: '0x9999000000000000000000000000000000009999',
+          chain: 100,
+          threshold: 1,
+          owners: ['0xaaaa00000000000000000000000000000000aaaa'],
+          modules: [],
+          vault: true,
+        },
       },
     },
     rolesMods: {},
@@ -64,15 +80,17 @@ export const accounts = {
     workspaceId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
     workspaceName: 'Second Space',
     safes: {
-      'Ops Fund': {
-        id: '33333333-3333-3333-3333-333333333333',
-        label: 'Ops Fund',
-        address: '0xffff00000000000000000000000000000000ffff',
-        chain: 1,
-        threshold: 1,
-        owners: ['0xaaaa00000000000000000000000000000000aaaa'],
-        modules: [],
-        vault: false,
+      1: {
+        'Ops Fund': {
+          id: '33333333-3333-3333-3333-333333333333',
+          label: 'Ops Fund',
+          address: '0xffff00000000000000000000000000000000ffff',
+          chain: 1,
+          threshold: 1,
+          owners: ['0xaaaa00000000000000000000000000000000aaaa'],
+          modules: [],
+          vault: false,
+        },
       },
     },
     rolesMods: {},

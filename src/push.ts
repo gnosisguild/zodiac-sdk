@@ -23,15 +23,25 @@ type PushOpts = {
 }
 
 /**
- * Resolves node references and pushes the constellation specification to the API.
+ * Applies the given nodes as the next revision of the constellations they
+ * belong to, and answers with a url per constellation to review and deploy.
  *
+ * Each node travels with what it was actually given, never with the onchain
+ * state a `pull` filled it with for reading — so a node passed as a bare
+ * reference declares nothing and leaves the account it names alone. Nodes
+ * naming each other travel as references and are substituted for addresses
+ * once those are derived at deploy.
+ *
+ * Passing an object names each node by its key; passing an array names them by
+ * position. Either way the name is the node's `ref`, which is how the app
+ * follows a node from one revision to the next.
  *
  * ```ts
  * const eth = constellation({ workspace: 'GG', label: 'my constellation', chain: 1 })
  * const dao = eth.safe['GG DAO']
  * const roles = eth.roles['New Roles']({ nonce: 0n, target: dao, owner: dao, avatar: dao })
  *
- * await push([dao, roles])
+ * await push({ dao, roles })
  * ```
  */
 export async function push(
@@ -76,6 +86,14 @@ export async function push(
   return results
 }
 
+/**
+ * What a ref may be spelled like. Refs come from export names and object keys,
+ * so any identifier a node can be declared under has to survive the push —
+ * except one opening with `$`, which is how a node references another. A list
+ * of nodes refs them by position, so a plain index counts too.
+ */
+const IDENTIFIER = /^(?:[a-zA-Z_][a-zA-Z0-9_$]*|\d+)$/
+
 type RefsIndex = {
   byIdentity: Map<ConstellationNodeInternal, string>
   byLabel: Map<string, string>
@@ -93,8 +111,8 @@ function deriveRefs(
 
   const register = (node: ConstellationNodeInternal, ref: string) => {
     invariant(
-      /^[a-z0-9_]+$/.test(ref),
-      `Invalid ref "${ref}": refs must contain only lowercase letters, numbers, or underscores`
+      IDENTIFIER.test(ref),
+      `Invalid ref "${ref}": a ref is a JavaScript identifier, and cannot start with "$"`
     )
     byIdentity.set(node, ref)
     byLabel.set(labelKey(node), ref)
@@ -122,14 +140,39 @@ function deriveRefs(
   return { byIdentity, byLabel }
 }
 
+/**
+ * What situates a node rather than configures it: which account it is, and how
+ * the workspace holds it. Always sent, even for a reference that declares
+ * nothing — none of it reaches the onchain diff, and leaving it out would lose
+ * the label and the vault the node belongs to.
+ *
+ * `address` above all. It is what the pull resolved the label to, and the only
+ * thing that says which account this is: a node without one is a creation, and
+ * its address is derived from whoever deploys. Drop it and a second deployer
+ * provisions a duplicate under the same label rather than reconfiguring the
+ * account that is already there.
+ */
+const IDENTITY_FIELDS = new Set(['type', 'chain', 'address', 'label', 'vault'])
+
 function nodeToSpec(
   node: ConstellationNodeInternal,
   refs: RefsIndex
 ): ApplyConstellationPayload['specification'][number] {
-  const { id, _constellation, ...rest } = node as Record<string, any>
+  const { id, _constellation, _declared, ...rest } = node as Record<string, any>
+  // A node built by hand rather than through an accessor says nothing about
+  // what it declares, so there is nothing to go on and everything travels.
+  const declared = Array.isArray(_declared) ? new Set<string>(_declared) : null
   const spec: Record<string, any> = {}
 
   for (const [key, value] of Object.entries(rest)) {
+    // A referenced node carries the state `pull` read from chain. Sending it
+    // back would declare it: an owner added since the pull would be removed
+    // again by the deployment, without anyone having written that down. So
+    // state travels only when this node actually declares it.
+    if (declared != null && !IDENTITY_FIELDS.has(key) && !declared.has(key)) {
+      continue
+    }
+
     if (node.type === 'ROLES' && key === 'roles' && value != null) {
       spec.roles = describeRoles(
         value as Record<string, RoleDef | null>,
