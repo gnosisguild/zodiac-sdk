@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.2.0...v2.3.0) (2026-09-15)
+
+
+### Features
+
+* declare delay modifiers in a constellation ([#68](https://github.com/gnosisguild/zodiac-sdk/issues/68)) ([7bf447c](https://github.com/gnosisguild/zodiac-sdk/commit/7bf447cae9d38fdb1263c663df2dad8bbc82ed80))
+
 ## [2.2.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.1.3...v2.2.0) (2026-09-07)
 
 
