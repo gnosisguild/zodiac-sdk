@@ -65,7 +65,7 @@ your code  ◀──pull──  Zodiac OS  ◀───────────�
 
 ## Constellation API
 
-The `constellation()` function is the main SDK entry point. It returns an API for declaring account constellations — the set of Safes, Roles mods, and users that make up your on-chain setup.
+The `constellation()` function is the main SDK entry point. It returns an API for declaring account constellations — the set of Safes, Roles mods, Delay mods, and users that make up your on-chain setup.
 
 ```ts
 import { constellation } from '@zodiaceco/sdk'
@@ -85,7 +85,7 @@ const eth = constellation({
 
 ### Referencing existing accounts
 
-Bracket access gives you existing Safes and Roles mods from the selected workspace and chain — both **vault accounts** (manually-promoted entries surfaced in the workspace UI) and any **constellation accounts** previously created by a `push()`. The codegen records them under the same `accounts` map, marked with a `vault` flag for the subset that are also workspace vaults. Names auto-complete from the codegen output.
+Bracket access gives you existing Safes, Roles mods and Delay mods from the selected workspace and chain — both **vault accounts** (manually-promoted entries surfaced in the workspace UI) and any **constellation accounts** previously created by a `push()`. The codegen records them under the same `accounts` map, marked with a `vault` flag for the subset that are also workspace vaults. Names auto-complete from the codegen output.
 
 A label only ever names an account on the constellation's own chain. The same name on another chain is a different account whose address means nothing here, so it reads as a new node rather than as a reference — two workspaces can both have a `Treasury` on mainnet and on Gnosis without either having to be addressed by address.
 
@@ -96,6 +96,9 @@ const ggDao = eth.safe['GG DAO']
 // Reference an existing Roles mod
 const ggDaoRoles = eth.roles['GG DAO Roles']
 
+// Reference an existing Delay mod
+const ggDaoDelay = eth.delay['GG DAO Timelock']
+
 // Optionally invoke with overrides
 const ggDaoOverridden = eth.safe['GG DAO']({ threshold: 5 })
 ```
@@ -104,7 +107,7 @@ const ggDaoOverridden = eth.safe['GG DAO']({ threshold: 5 })
 
 ### Creating new accounts
 
-Use bracket access with a new label to create new nodes. Every mandatory field (`nonce`, `threshold`, `owners` for Safes; `nonce` for Roles mods) must be supplied explicitly — the SDK does not inject any runtime defaults. The type system surfaces a missing field as a compile-time error so you can't ship an incomplete spec.
+Use bracket access with a new label to create new nodes. Every mandatory field (`nonce`, `threshold`, `owners` for Safes; `nonce` for Roles mods; `nonce`, `cooldown`, `expiration` for Delay mods) must be supplied explicitly — the SDK does not inject any runtime defaults. The type system surfaces a missing field as a compile-time error so you can't ship an incomplete spec.
 
 ```ts
 // New Safe — nonce, threshold, owners are required
@@ -122,6 +125,42 @@ const newSafe = eth.safe['New Safe']({
 const newRoles = eth.roles['New Roles']({
   nonce: 0n,
   target: ggDao,
+})
+
+// New Delay mod targeting an existing Safe
+const newDelay = eth.delay['New Timelock']({
+  nonce: 0n,
+  target: ggDao,
+  cooldown: 86400n, // a day before a queued transaction may execute
+  expiration: 604800n, // a week to execute it in, `0n` to never expire
+})
+```
+
+### Delay mods
+
+A Delay mod holds every transaction sent through it for `cooldown` seconds before it can be executed, and drops it again after `expiration` seconds have passed (`0n` means it never expires). Both are declared in seconds.
+
+The accounts allowed to queue a transaction through the delay are its `modules` — a complete array replaces the enabled set:
+
+```ts
+const timelock = eth.delay['Treasury Timelock']({
+  nonce: 0n,
+  target: ggDao,
+  cooldown: 172800n,
+  expiration: 0n,
+  modules: [ggDaoRoles],
+})
+
+// The safe executes what has been through the delay
+const treasury = eth.safe['Treasury']({ modules: [timelock] })
+```
+
+To reconfigure a Delay mod that is already on chain but not in your workspace, bind it by `address` instead of declaring a `nonce` — the same either/or that applies to Roles mods:
+
+```ts
+const existing = eth.delay['Existing timelock']({
+  address: '0x88A51CcB262d04B334065Ad425928dF79c4CB7d7',
+  cooldown: 3600n,
 })
 ```
 

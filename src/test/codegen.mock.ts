@@ -74,7 +74,17 @@ export const accounts = {
       },
     },
     rolesMods: {},
-    delays: {},
+    delays: {
+      1: {
+        Timelock: {
+          id: '55555555-5555-5555-5555-555555555555',
+          label: 'Timelock',
+          address: '0xdddd00000000000000000000000000000000dddd',
+          chain: 1,
+          vault: false,
+        },
+      },
+    },
   },
   'Second Space': {
     workspaceId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',

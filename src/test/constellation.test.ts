@@ -12,6 +12,7 @@ describe('constellation API', () => {
 
       expect(eth.safe).toBeDefined()
       expect(eth.roles).toBeDefined()
+      expect(eth.delay).toBeDefined()
       expect(eth.user).toBeDefined()
     })
   })
@@ -150,6 +151,107 @@ describe('constellation API', () => {
       )
       // @ts-expect-error — must provide either `nonce` (new) or `address` (existing)
       eth.roles['Incomplete']({ roles: {} })
+    })
+  })
+
+  describe('new delay — bracket access with new key', () => {
+    function setup() {
+      return constellation(
+        { workspace: 'GG', label: 'l', chain: 1 },
+        { codegen }
+      )
+    }
+
+    it('creates a new delay mod with a cooldown and an expiration', () => {
+      const eth = setup()
+      const ggDao = eth.safe['GG DAO']
+
+      const timelock = eth.delay['New Timelock']({
+        nonce: 7n,
+        owner: ggDao,
+        target: ggDao,
+        avatar: ggDao,
+        cooldown: 86400n,
+        expiration: 604800n,
+      })
+
+      expect(timelock.type).toBe('DELAY')
+      expect(timelock.nonce).toBe(7n)
+      expect(timelock.cooldown).toBe(86400n)
+      expect(timelock.expiration).toBe(604800n)
+      expect(timelock.target).toBe(ggDao)
+    })
+
+    it('binds to an existing delay mod by address (no nonce)', () => {
+      const eth = setup()
+
+      const existing = eth.delay['Existing delay mod']({
+        address: '0x88A51CcB262d04B334065Ad425928dF79c4CB7d7',
+        cooldown: 3600n,
+      })
+
+      expect(existing.type).toBe('DELAY')
+      expect(existing.address).toBe(
+        '0x88A51CcB262d04B334065Ad425928dF79c4CB7d7'
+      )
+      expect(existing.label).toBe('Existing delay mod')
+    })
+
+    it('rejects a new delay that says nothing about how long it holds', () => {
+      const eth = setup()
+      // @ts-expect-error — a new delay declares both cooldown and expiration
+      eth.delay['Incomplete']({ nonce: 0n })
+    })
+
+    it('rejects a delay declared with neither nonce nor address', () => {
+      const eth = setup()
+      // @ts-expect-error — must provide either `nonce` (new) or `address` (existing)
+      eth.delay['Incomplete']({ cooldown: 1n, expiration: 1n })
+    })
+  })
+
+  describe('existing delay — bracket access', () => {
+    function setup() {
+      return constellation(
+        { workspace: 'GG', label: 'l', chain: 1 },
+        { codegen }
+      )
+    }
+
+    it('returns a node ref for a delay the workspace holds', () => {
+      const eth = setup()
+      const timelock = eth.delay['Timelock']
+
+      expect(timelock.type).toBe('DELAY')
+      expect(timelock.label).toBe('Timelock')
+      expect(timelock.address).toBe(
+        codegen.accounts.GG.delays[1].Timelock.address
+      )
+    })
+
+    it('reads a label from another chain as a new node', () => {
+      const gno = constellation(
+        { workspace: 'GG', label: 'l', chain: 100 },
+        { codegen }
+      )
+
+      const timelock = gno.delay['Timelock']
+      // @ts-expect-error — not an account on this chain
+      expect(timelock.address).toBeUndefined()
+    })
+
+    it('can be enabled as a module on a safe', () => {
+      const eth = setup()
+      const timelock = eth.delay['Timelock']
+
+      const safe = eth.safe['New Safe']({
+        nonce: 0n,
+        threshold: 1,
+        owners: [eth.user['Alice Sample']],
+        modules: [timelock],
+      })
+
+      expect(safe.modules).toContain(timelock)
     })
   })
 
