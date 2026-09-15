@@ -106,6 +106,12 @@ type RolesEntries<
   Ch extends ChainId,
 > = ChainEntries<C['accounts'][W]['rolesMods'], Ch>
 
+type DelayEntries<
+  C extends CodegenData,
+  W extends keyof C['accounts'],
+  Ch extends ChainId,
+> = ChainEntries<C['accounts'][W]['delays'], Ch>
+
 type NodeType = 'SAFE' | 'ROLES' | 'DELAY'
 
 /** A reference to a node used in `owners`, `modules`, `target`, etc. */
@@ -171,8 +177,28 @@ export type RolesNode = NodeBase &
     allowances?: Record<string, AllowanceSpec | null>
   }>
 
+/** A delay modifier node — a reference to one the workspace already has, or a
+ * new one with the config it is deployed with. */
+export type DelayNode = NodeBase &
+  Readonly<{
+    /** Discriminator identifying this node as a Delay modifier. */
+    type: 'DELAY'
+    /** The safe that this delay modifier controls. */
+    target?: AddressOrRef
+    /** The account that is allowed to update the configuration of the Delay mod. */
+    owner?: AddressOrRef
+    /** The account that calls will be executed from. */
+    avatar?: AddressOrRef
+    /** Seconds a queued transaction waits before it becomes executable. */
+    cooldown?: bigint
+    /** Seconds a transaction stays executable once its cooldown has passed. */
+    expiration?: bigint
+    /** Module addresses or node references enabled on the delay. */
+    modules?: readonly (string | NodeRef)[]
+  }>
+
 /** Any complete node that can be passed to `push()`. */
-export type ConstellationNode = SafeNode | RolesNode
+export type ConstellationNode = SafeNode | RolesNode | DelayNode
 export type ConstellationNodeInternal = ConstellationNode & {
   _constellation: ConstellationMeta
   /**
@@ -232,6 +258,44 @@ type ExistingRolesByAddress = RolesConfig & {
 }
 
 type NewRolesProps = NewRolesByNonce | ExistingRolesByAddress
+
+/** Configuration shared by both ways of declaring a delay modifier. */
+type DelayConfig = {
+  /** The safe that this delay modifier controls. Defaults to the new safe with the same label, when one exists. */
+  target?: AddressOrRef
+  /** The account that calls will be executed from. Defaults to `target` value */
+  avatar?: AddressOrRef
+  /** The account that is allowed to update the configuration of the Delay Mod. Defaults to `target` value */
+  owner?: AddressOrRef
+  /** Module addresses or node references allowed to queue transactions through
+   * this delay. A complete array replaces the enabled modules. */
+  modules?: readonly AddressOrRef[]
+}
+
+/** Declare a brand-new delay modifier (address derived via CREATE2 from `nonce`). */
+type NewDelayByNonce = DelayConfig & {
+  /** Deployment nonce for CREATE2 address derivation. */
+  nonce: bigint
+  /** Seconds a queued transaction waits before it becomes executable. */
+  cooldown: bigint
+  /** Seconds a transaction stays executable once its cooldown has passed. */
+  expiration: bigint
+}
+
+/** Bind to a delay modifier already deployed on-chain at a known address, to
+ * reconfigure its cooldown, expiration or modules. Use this for mods not (yet)
+ * imported into the workspace — pass the address instead of a deployment
+ * `nonce`. */
+type ExistingDelayByAddress = DelayConfig & {
+  /** Address of the existing Delay mod to bind to and reconfigure. */
+  address: Address
+  /** Seconds a queued transaction waits before it becomes executable. */
+  cooldown?: bigint
+  /** Seconds a transaction stays executable once its cooldown has passed. */
+  expiration?: bigint
+}
+
+type NewDelayProps = NewDelayByNonce | ExistingDelayByAddress
 
 type ExistingNodeAccessor<
   Type extends string,
@@ -300,6 +364,9 @@ type ConstellationResult<
   /** Access existing roles modifiers by label or create new ones with a
    * new label. Only ROLES-typed accounts are suggested in IntelliSense. */
   roles: EntityAccessor<'ROLES', RolesEntries<C, W, Ch>, Ch, NewRolesProps>
+  /** Access existing delay modifiers by label or create new ones with a
+   * new label. Only DELAY-typed accounts are suggested in IntelliSense. */
+  delay: EntityAccessor<'DELAY', DelayEntries<C, W, Ch>, Ch, NewDelayProps>
   /** Resolve a user's personal safe address on the constellation's chain. */
   user: UserAccessor<C, Ch>
 }
@@ -330,6 +397,7 @@ function loadCodegen(): CodegenData {
  * const dao = eth.safe['GG DAO']              // the safe of that name on chain 1
  * const roles = eth.roles['GG DAO']           // the roles mod of that name
  * const newSafe = eth.safe['New Safe']({ nonce: 0n, threshold: 2, owners: [...], modules: [...] })
+ * const timelock = eth.delay['Timelock']({ nonce: 0n, target: dao, cooldown: 86400n, expiration: 0n })
  * ```
  *
  * Names come from the last `pull-org`, so an account deployed since then is
@@ -348,6 +416,7 @@ export function constellation<
   const ws = codegen.accounts[opts.workspace]
   const safesByLabel: Record<string, Account> = {}
   const rolesByLabel: Record<string, Account> = {}
+  const delaysByLabel: Record<string, Account> = {}
   if (ws) {
     // Only this chain's accounts are in scope. A label resolved from another
     // chain would hand back an address that names nothing here, and the node
@@ -360,6 +429,9 @@ export function constellation<
     }
     for (const [label, account] of Object.entries(onThisChain(ws.rolesMods))) {
       rolesByLabel[label] = account
+    }
+    for (const [label, account] of Object.entries(onThisChain(ws.delays))) {
+      delaysByLabel[label] = account
     }
   }
 
@@ -444,10 +516,12 @@ export function constellation<
 
   const safe = entityAccessor(safesByLabel, 'SAFE')
   const roles = entityAccessor(rolesByLabel, 'ROLES')
+  const delay = entityAccessor(delaysByLabel, 'DELAY')
 
   return {
     safe,
     roles,
+    delay,
     user: userAccessor(),
   } as ConstellationResult<C, W, Ch>
 }

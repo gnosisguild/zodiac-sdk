@@ -74,6 +74,79 @@ describe('push', () => {
     })
   })
 
+  it('pushes a new delay with its bigints as strings', async () => {
+    const eth = setup()
+    const dao = eth.safe['GG DAO']
+    const timelock = eth.delay['New Timelock']({
+      nonce: 3n,
+      owner: dao,
+      target: dao,
+      avatar: dao,
+      cooldown: 86400n,
+      expiration: 604800n,
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ dao, timelock }, { api })
+
+    expect(lastPayload().specification[1]).toEqual({
+      ref: 'timelock',
+      type: 'DELAY',
+      chain: 1,
+      label: 'New Timelock',
+      nonce: '3',
+      owner: '$dao',
+      target: '$dao',
+      avatar: '$dao',
+      cooldown: '86400',
+      expiration: '604800',
+    })
+  })
+
+  it('resolves a safe that names a delay as one of its modules', async () => {
+    const eth = setup()
+    const timelock = eth.delay['New Timelock']({
+      nonce: 0n,
+      owner: '0xaaaa00000000000000000000000000000000aaaa',
+      target: '0xaaaa00000000000000000000000000000000aaaa',
+      avatar: '0xaaaa00000000000000000000000000000000aaaa',
+      cooldown: 60n,
+      expiration: 0n,
+    })
+    const safe = eth.safe['New Safe']({
+      nonce: 0n,
+      threshold: 1,
+      owners: ['0xaaaa00000000000000000000000000000000aaaa'],
+      modules: [timelock],
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ timelock, safe }, { api })
+
+    expect(lastPayload().specification[1].modules).toEqual(['$timelock'])
+  })
+
+  // A delay the workspace already holds travels as the account it names, not
+  // as a declaration of the cooldown someone has since changed on chain.
+  it('pushes a referenced delay as a reference', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.delay['Timelock']], { api })
+
+    const spec = lastPayload().specification[0]
+
+    expect(spec).toMatchObject({
+      ref: '0',
+      type: 'DELAY',
+      chain: 1,
+      label: 'Timelock',
+      address: codegen.accounts.GG.delays[1].Timelock.address,
+    })
+    expect(spec).not.toHaveProperty('cooldown')
+    expect(spec).not.toHaveProperty('expiration')
+  })
+
   it('resolves nested node refs to $ref strings', async () => {
     const eth = setup()
     const dao = eth.safe['GG DAO']
