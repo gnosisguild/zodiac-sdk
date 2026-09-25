@@ -3,6 +3,7 @@ import { encodeKey } from 'zodiac-roles-sdk'
 import { push } from '../push'
 import { constellation } from '../constellation'
 import * as codegen from './codegen.mock'
+import * as treasury_ops from './policyRole.mock'
 
 function mockApi() {
   const mockApply = mock(() => Promise.resolve({ ok: true }))
@@ -487,6 +488,101 @@ describe('push', () => {
         permissions: [],
       },
       deprecated: null,
+    })
+  })
+
+  it('sends the policy a role is marked as', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const roles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        treasury_ops: {
+          members: [],
+          permissions: [],
+          policy: 'Treasury Ops',
+          description: 'Day-to-day treasury operations',
+        },
+      },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    expect(lastPayload().specification[1].roles.treasury_ops).toEqual({
+      key: 'treasury_ops',
+      members: [],
+      permissions: [],
+      policy: 'Treasury Ops',
+      description: 'Day-to-day treasury operations',
+    })
+  })
+
+  it('sends the policy a role folder exports', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const roles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: { treasury_ops },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    expect(lastPayload().specification[1].roles.treasury_ops).toEqual({
+      key: 'treasury_ops',
+      members: [],
+      permissions: [],
+      policy: 'Treasury Ops',
+    })
+  })
+
+  it('sends no policy fields for a role that is no policy', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const roles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: { eth_wrapping: { members: [], permissions: [] } },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    const role = lastPayload().specification[1].roles.eth_wrapping
+
+    expect(role).not.toHaveProperty('policy')
+    expect(role).not.toHaveProperty('description')
+  })
+
+  it('refuses a description on a role that is no policy', () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        // @ts-expect-error — only a policy has a description
+        eth_wrapping: {
+          members: [],
+          permissions: [],
+          description: 'Wraps ETH',
+        },
+      },
     })
   })
 

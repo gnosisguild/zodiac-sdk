@@ -214,6 +214,8 @@ function describeRoles(
         {
           key,
           members: resolveRefs(def.members, refs),
+          ...(def.policy != null && { policy: def.policy }),
+          ...(def.description != null && { description: def.description }),
           permissions: def.permissions.map((entry) => {
             assertRecipientChains(entry, chain)
 

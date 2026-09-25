@@ -11,11 +11,24 @@ import { UUID } from 'crypto'
  * parameters and labels, never compiled permissions. They are expanded into
  * `{ targets, annotations }` when the constellation is deployed, so that a
  * stored revision always compiles through the current compilers.
+ *
+ * A role carrying `policy` is a policy in Zodiac. Its key is the policy's
+ * identity, so the same key on several Roles mods is one policy, active on
+ * each of their vaults. Only a policy has a `description`.
  */
 export type RoleDef = {
   members: readonly AddressOrRef[]
   permissions: readonly PermissionEntry[]
-}
+} & (
+  | {
+      /** Marks the role as a policy, labelled with this value. Never reaches
+       * the chain. */
+      policy: string
+      /** Describes the policy in Zodiac. Never reaches the chain. */
+      description?: string
+    }
+  | { policy?: undefined; description?: undefined }
+)
 
 type User = {
   id: UUID

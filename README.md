@@ -279,6 +279,28 @@ be a node — an account from your codegen, or one bound by address — which
 stands for the address it lives at. A node whose address is only known once the
 constellation is deployed is rejected at compile time.
 
+### Marking a role as a policy
+
+A role becomes a policy by carrying `policy`, the label it goes by in Zodiac,
+and optionally a `description`. In a template project, export both from the
+role's folder next to `members` and `permissions`:
+
+```ts
+// constellation/roles/treasury_ops/index.ts
+export { default as members } from './members'
+export { default as permissions } from './permissions'
+
+export const policy = 'Treasury Ops'
+export const description = 'Day-to-day treasury operations'
+```
+
+The role key — `treasury_ops` here — is the policy's identity. It becomes the
+on-chain role key, never changes when you rename the label, and ties the same
+role on several Roles mods together as one policy active on each of their
+vaults. A policy's key consists of 1 to 31 letters, digits, underscores or
+hyphens. Only a policy has a description, so a `description` without `policy`
+fails to compile. Neither field reaches the chain.
+
 ### Pushing the constellation
 
 The `push()` function takes all nodes and sends them to the Zodiac OS API. Pass either a named object (keys become refs) or an array:
