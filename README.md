@@ -272,7 +272,8 @@ it has nowhere to appear in the app beyond the targets it allows.
 Allowance keys are plain labels — `key: 'usdc_payouts'` on the declaration, and
 `allowance: usdc_payouts` on the transfer, which reads the key off it. They are
 encoded to bytes32 when the constellation is deployed, so nothing calls
-`encodeKey` by hand. A label has to fit in 32 bytes.
+`encodeKey` by hand. Allowance and role keys consist of 1 to 31 letters,
+digits, underscores or hyphens.
 
 Tokens are named by address, not by symbol. A `transfer()` recipient may also
 be a node — an account from your codegen, or one bound by address — which
@@ -297,8 +298,7 @@ export const description = 'Day-to-day treasury operations'
 The role key — `treasury_ops` here — is the policy's identity. It becomes the
 on-chain role key, never changes when you rename the label, and ties the same
 role on several Roles mods together as one policy active on each of their
-vaults. A policy's key consists of 1 to 31 letters, digits, underscores or
-hyphens. Only a policy has a description, so a `description` without `policy`
+vaults. Only a policy has a description, so a `description` without `policy`
 fails to compile. Neither field reaches the chain.
 
 ### Pushing the constellation
