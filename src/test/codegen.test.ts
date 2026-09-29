@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { id } from 'ethers'
+import { encodeKey, Operator } from 'zodiac-roles-sdk'
 import { generateAllowTypes } from '../allow/codegen'
 import { buildAllowKit } from '../allow/runtime'
 
@@ -131,5 +132,64 @@ describe('the allow kit proxy', () => {
     const kit: any = buildAllowKit(abisDir, CONTRACTS)
 
     expect(kit.eth.susds.redeem().selector).toEqual(selector('redeem(uint256)'))
+  })
+
+  // Keys are authored as plain labels everywhere else, and the modifier
+  // compares the bytes32 they encode to.
+  describe('allowance options', () => {
+    const allowanceOf = (permission: any, operator: Operator) =>
+      permission.condition.children.find(
+        (child: any) => child.operator === operator
+      )
+
+    it('encodes the key of an Ether allowance', () => {
+      const kit: any = buildAllowKit(abisDir, CONTRACTS)
+
+      const permission = kit.eth.susds.redeem(undefined, {
+        send: true,
+        etherWithinAllowance: 'eth_budget',
+      })
+
+      expect(allowanceOf(permission, Operator.EtherWithinAllowance)).toEqual(
+        expect.objectContaining({ compValue: encodeKey('eth_budget') })
+      )
+    })
+
+    it('encodes the key of a call allowance', () => {
+      const kit: any = buildAllowKit(abisDir, CONTRACTS)
+
+      const permission = kit.eth.susds.redeem(undefined, {
+        callWithinAllowance: 'daily_calls',
+      })
+
+      expect(allowanceOf(permission, Operator.CallWithinAllowance)).toEqual(
+        expect.objectContaining({ compValue: encodeKey('daily_calls') })
+      )
+    })
+
+    it('keeps a key that is already encoded', () => {
+      const kit: any = buildAllowKit(abisDir, CONTRACTS)
+      const encoded = encodeKey('eth_budget')
+
+      const permission = kit.eth.susds.redeem(undefined, {
+        send: true,
+        etherWithinAllowance: encoded,
+      })
+
+      expect(allowanceOf(permission, Operator.EtherWithinAllowance)).toEqual(
+        expect.objectContaining({ compValue: encoded })
+      )
+    })
+
+    it('adds the allowance to the conditions on the parameters', () => {
+      const kit: any = buildAllowKit(abisDir, CONTRACTS)
+
+      const permission = kit.eth.susds.redeem(1n, {
+        send: true,
+        etherWithinAllowance: 'eth_budget',
+      })
+
+      expect(permission.condition.children).toHaveLength(2)
+    })
   })
 })

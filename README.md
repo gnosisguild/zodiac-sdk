@@ -277,8 +277,11 @@ it has nowhere to appear in the app beyond the targets it allows.
 Allowance keys are plain labels — `key: 'usdc_payouts'` on the declaration, and
 `allowance: usdc_payouts` on the transfer, which reads the key off it. They are
 encoded to bytes32 when the constellation is deployed, so nothing calls
-`encodeKey` by hand. Allowance and role keys consist of 1 to 31 letters,
-digits, underscores or hyphens.
+`encodeKey` by hand. The same holds where an `allow`-kit permission draws on an
+allowance: `c.withinAllowance('usdc_payouts')` on a parameter, or
+`{ send: true, etherWithinAllowance: 'eth_budget' }` and
+`{ callWithinAllowance: 'daily_calls' }` in its options. Allowance and role
+keys consist of 1 to 31 letters, digits, underscores or hyphens.
 
 Tokens are named by address, not by symbol. A `transfer()` recipient may also
 be a node — an account from your codegen, or one bound by address — which

@@ -8,8 +8,10 @@ import type {
 export type Options = {
   send?: boolean
   delegatecall?: boolean
-  etherWithinAllowance?: `0x${string}`
-  callWithinAllowance?: `0x${string}`
+  /** Meters the Ether sent. The allowance's key, as a label or already encoded. */
+  etherWithinAllowance?: string
+  /** Meters the number of calls. The allowance's key, as a label or already encoded. */
+  callWithinAllowance?: string
 }
 
 export type PrimitiveValue = BigNumberish | BytesLike | string | boolean

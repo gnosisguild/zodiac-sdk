@@ -1,5 +1,11 @@
 import { Interface, FunctionFragment, isError, type InterfaceAbi } from 'ethers'
-import { c, coercePermission, ParameterType, Operator } from 'zodiac-roles-sdk'
+import {
+  c,
+  coercePermission,
+  encodeKey,
+  ParameterType,
+  Operator,
+} from 'zodiac-roles-sdk'
 import type {
   Condition,
   FunctionPermission,
@@ -193,14 +199,14 @@ const applyOptions = (
     condition = applyGlobalAllowance(condition, {
       paramType: ParameterType.None,
       operator: Operator.EtherWithinAllowance,
-      compValue: options.etherWithinAllowance,
+      compValue: encodeKey(options.etherWithinAllowance),
     })
   }
   if (options.callWithinAllowance) {
     condition = applyGlobalAllowance(condition, {
       paramType: ParameterType.None,
       operator: Operator.CallWithinAllowance,
-      compValue: options.callWithinAllowance,
+      compValue: encodeKey(options.callWithinAllowance),
     })
   }
   return {
