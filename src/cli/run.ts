@@ -49,7 +49,9 @@ export const run = async (argv: string[] = process.argv) => {
   program.hook('postAction', async () => {
     const notice = await updateNotice
 
-    if (notice != null) {
+    // A command that reports its own failure sets the exit code instead of
+    // throwing, which still runs this hook.
+    if (notice != null && !process.exitCode) {
       console.warn(`\n${notice}`)
     }
   })
