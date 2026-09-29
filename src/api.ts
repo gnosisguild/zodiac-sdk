@@ -126,10 +126,20 @@ export class ApiClient {
   }
 }
 
+/** One thing the API refused, and where in the request it is. */
+export type ApiIssue = {
+  path: (string | number)[]
+  message: string
+}
+
 export class ApiRequestError extends Error {
   public readonly status: number
   public readonly statusText: string
   public readonly details?: unknown
+  /** What the API refused, when it could name each problem. */
+  public readonly issues: ApiIssue[]
+  /** The API's own summary of the problem. */
+  public readonly reason: string
 
   constructor(
     message: string,
@@ -140,11 +150,19 @@ export class ApiRequestError extends Error {
       cause?: unknown
     }
   ) {
-    super(ApiRequestError.composeMessage(message, opts.details))
+    const issues = readIssues(opts.details)
+
+    super(
+      issues.length > 0
+        ? formatIssues(message, issues)
+        : ApiRequestError.composeMessage(message, opts.details)
+    )
     this.name = 'ApiRequestError'
     this.status = opts.status
     this.statusText = opts.statusText
     this.details = opts.details
+    this.issues = issues
+    this.reason = message
     if (opts.cause !== undefined) {
       ;(this as any).cause = opts.cause
     }
@@ -199,6 +217,49 @@ async function handleApiError(response: Response): Promise<never> {
     )
   }
 }
+
+/**
+ * The issues of an error response, each naming where in the request it is.
+ * Anything that does not look like one is left to the raw details.
+ */
+const readIssues = (details: unknown): ApiIssue[] => {
+  if (
+    typeof details !== 'object' ||
+    details == null ||
+    !('issues' in details)
+  ) {
+    return []
+  }
+
+  const { issues } = details
+
+  if (!Array.isArray(issues)) {
+    return []
+  }
+
+  return issues.flatMap((issue): ApiIssue[] =>
+    typeof issue === 'object' &&
+    issue != null &&
+    Array.isArray(issue.path) &&
+    typeof issue.message === 'string'
+      ? [{ path: issue.path, message: issue.message }]
+      : []
+  )
+}
+
+/** A headline and one line per issue, the way a terminal reads best. */
+export const formatIssues = (
+  headline: string,
+  issues: { path: string; message: string }[] | ApiIssue[]
+) =>
+  [
+    `${headline}:`,
+    ...issues.map(({ path, message }) => {
+      const where = Array.isArray(path) ? path.join(' › ') : path
+
+      return where === '' ? `  • ${message}` : `  • ${where}: ${message}`
+    }),
+  ].join('\n')
 
 /** JSON.stringify with bigint support */
 const jsonStringify = (value: unknown, indent?: number) =>

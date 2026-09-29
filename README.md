@@ -256,7 +256,10 @@ Each helper covers a different kind of action:
   name one with `chain` when the recipients are plain addresses. Tokens without
   an Across route to a target are skipped, the same way the app skips them —
   routes change between writing a spec and deploying it — but a target nothing
-  can reach at all is refused at deploy rather than deployed half-working.
+  can reach at all is refused at deploy rather than deployed half-working. A
+  transfer bridges to each chain once: every recipient of a target may receive
+  every token it names, so recipients that receive other tokens on the same
+  chain get a transfer of their own.
 - `defikit` mirrors the DeFi Kit allow kit — same protocols, verbs and
   parameters, plus a `label`. A DeFi Kit entry is nothing but its annotation;
   the permissions behind it are fetched from the annotation's uri at deploy, so
@@ -298,8 +301,12 @@ export const description = 'Day-to-day treasury operations'
 The role key — `treasury_ops` here — is the policy's identity. It becomes the
 on-chain role key, never changes when you rename the label, and ties the same
 role on several Roles mods together as one policy active on each of their
-vaults. Only a policy has a description, so a `description` without `policy`
-fails to compile. Neither field reaches the chain.
+vaults. Every Roles mod carrying the key has to mark it as the same policy,
+with the same label, description, members and permissions — exporting both from
+the role folder does that. A policy reaches each vault through a single Roles
+mod, so no two mods carrying it may act for the same Safe. Only a policy has a
+description, so a `description` without `policy` fails to compile. Neither
+field reaches the chain.
 
 ### Pushing the constellation
 
@@ -317,6 +324,15 @@ By default, `push()` creates an API client from the `ZODIAC_API_KEY` environment
 
 ```ts
 await push({ ggDao, newRoles }, { api: new ApiClient({ apiKey: '...' }) })
+```
+
+When Zodiac refuses a constellation as it stands — a policy it could not hold,
+a key it cannot encode — `push()` rejects with a `ConstellationRejectedError`
+that lists every issue, starting at the node you pushed:
+
+```
+Zodiac refused the constellation "Production". Some policies of this constellation cannot be held in Zodiac:
+  • opsRoles ("Ops Roles") › roles › treasury_ops › policy: "Treasury Ops" is a policy on another Roles modifier. Mark this role as that policy too.
 ```
 
 ## CLI reference
