@@ -328,7 +328,8 @@ await push({ ggDao, newRoles }, { api: new ApiClient({ apiKey: '...' }) })
 
 When Zodiac refuses a constellation as it stands — a policy it could not hold,
 a key it cannot encode — `push()` rejects with a `ConstellationRejectedError`
-that lists every issue, starting at the node you pushed:
+that lists every issue, starting at the node you pushed. `zodiac push` prints
+it like this:
 
 ```
 Zodiac refused the constellation "Production". Some policies of this constellation cannot be held in Zodiac:
@@ -340,7 +341,7 @@ Zodiac refused the constellation "Production". Some policies of this constellati
 ```
 Usage: zodiac [options] [command]
 
-Zodiac SDK CLI – pull org data and contract ABIs
+Zodiac SDK CLI – pull org data and contract ABIs, push constellations
 
 Options:
   -V, --version        output the version number
@@ -352,5 +353,19 @@ Commands:
   pull-org             Fetch Zodiac users and accounts, generate TypeScript types
   pull-contracts       Fetch contract ABIs, generate typed permissions kit
   pull                 Fetch Zodiac org and contracts ABI, generate SDK functions
+  push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser)
   help [command]       display help for command
+```
+
+`zodiac push` imports the entrypoint (`constellation/index.ts` by default),
+pushes every named export as a node, and prints where each constellation can be
+reviewed. When Zodiac refuses a constellation, it prints what was refused and
+exits with code 1. A project whose entrypoint relies on globals it sets up
+itself runs that setup first and then calls the same command:
+
+```ts
+import './globals'
+import { pushEntrypoint } from '@zodiaceco/sdk/cli/push'
+
+await pushEntrypoint({ entrypoint: process.argv[2] })
 ```

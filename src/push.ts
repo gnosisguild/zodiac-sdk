@@ -20,6 +20,8 @@ import type {
 type PushOpts = {
   /** API client instance. Defaults to a client configured from environment variables. */
   api?: ApiClient
+  /** API key for the default client, instead of `ZODIAC_API_KEY`. */
+  apiKey?: string
 }
 
 /**
@@ -48,7 +50,7 @@ export async function push(
   nodes: ConstellationNode[] | { [key: string]: ConstellationNode },
   opts?: PushOpts
 ): Promise<ApplyConstellationResult[]> {
-  const api = opts?.api ?? new ApiClient()
+  const api = opts?.api ?? new ApiClient({ apiKey: opts?.apiKey })
   const refs = deriveRefs(nodes)
 
   // Group nodes by constellation (multiple constellations can be applied with a single call)

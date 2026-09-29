@@ -28,6 +28,10 @@
     "./cli/config": {
       "types": "./dist/cli/config.d.mts",
       "import": "./dist/cli/config.mjs"
+    },
+    "./cli/push": {
+      "types": "./dist/cli/push.d.mts",
+      "import": "./dist/cli/push.mjs"
     }
   },
   "files": [
