@@ -56,6 +56,29 @@ describe('loadConfig', () => {
     expect(config.apiKey).toBe('zodiac_from-env')
   })
 
+  it("reads the API key from the project root's .env when run from a subdirectory", async () => {
+    writeConfig('{}')
+    writeFileSync(join(tmpDir, '.env'), 'ZODIAC_API_KEY=zodiac_from-dotenv\n')
+    mkdirSync(join(tmpDir, 'constellation'))
+    process.chdir(join(tmpDir, 'constellation'))
+
+    await expect(loadConfig('zodiac.config.ts')).resolves.toHaveProperty(
+      'apiKey',
+      'zodiac_from-dotenv'
+    )
+  })
+
+  it("prefers a set ZODIAC_API_KEY over the project root's .env", async () => {
+    process.env[ENV_KEY] = 'zodiac_from-env'
+    writeConfig('{}')
+    writeFileSync(join(tmpDir, '.env'), 'ZODIAC_API_KEY=zodiac_from-dotenv\n')
+
+    await expect(loadConfig('zodiac.config.ts')).resolves.toHaveProperty(
+      'apiKey',
+      'zodiac_from-env'
+    )
+  })
+
   it('prefers an explicit apiKey in the config over the env var', async () => {
     process.env[ENV_KEY] = 'zodiac_from-env'
     writeConfig(`{ apiKey: 'zodiac_from-config' }`)
