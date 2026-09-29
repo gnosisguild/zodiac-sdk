@@ -259,7 +259,8 @@ Each helper covers a different kind of action:
   can reach at all is refused at deploy rather than deployed half-working. A
   transfer bridges to each chain once: every recipient of a target may receive
   every token it names, so recipients that receive other tokens on the same
-  chain get a transfer of their own.
+  chain get a transfer of their own. `transfer()` throws on a second target for
+  a chain, and on `to` recipients that live on different chains.
 - `defikit` mirrors the DeFi Kit allow kit — same protocols, verbs and
   parameters, plus a `label`. A DeFi Kit entry is nothing but its annotation;
   the permissions behind it are fetched from the annotation's uri at deploy, so
@@ -283,30 +284,27 @@ be a node — an account from your codegen, or one bound by address — which
 stands for the address it lives at. A node whose address is only known once the
 constellation is deployed is rejected at compile time.
 
-### Marking a role as a policy
+### Showing accounts and roles in the Zodiac app
 
-A role becomes a policy by carrying `policy`, the label it goes by in Zodiac,
-and optionally a `description`. In a template project, export both from the
-role's folder next to `members` and `permissions`:
+A constellation deploys whatever it describes, but only what you mark shows up
+in the Zodiac app for the rest of your org:
 
-```ts
-// constellation/roles/treasury_ops/index.ts
-export { default as members } from './members'
-export { default as permissions } from './permissions'
+- **`vault: true`** on a Safe lists it under **Vaults**.
+- **`policy`** on a role lists it under **Policies**, labelled as given, so
+  everyone in your org can see what it permits right in the app. A
+  `description` is optional. In a template project, export both from the
+  role's folder:
 
-export const policy = 'Treasury Ops'
-export const description = 'Day-to-day treasury operations'
-```
+  ```ts
+  // constellation/roles/treasury_ops/index.ts
+  export const policy = 'Treasury Ops'
+  export const description = 'Day-to-day treasury operations'
+  ```
 
-The role key — `treasury_ops` here — is the policy's identity. It becomes the
-on-chain role key, never changes when you rename the label, and ties the same
-role on several Roles mods together as one policy active on each of their
-vaults. Every Roles mod carrying the key has to mark it as the same policy,
-with the same label, description, members and permissions — exporting both from
-the role folder does that. A policy reaches each vault through a single Roles
-mod, so no two mods carrying it may act for the same Safe. Only a policy has a
-description, so a `description` without `policy` fails to compile. Neither
-field reaches the chain.
+  The role key (`treasury_ops`) is the policy's identity and its on-chain role
+  key, so renaming the label changes nothing on chain. Every Roles mod carrying
+  the key has to grant it the same way, and no two of them may act for the
+  same Safe.
 
 ### Pushing the constellation
 

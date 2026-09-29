@@ -160,6 +160,38 @@ describe('actions', () => {
     )
   })
 
+  it('refuses bridging to one chain twice', () => {
+    expect(() =>
+      transfer({
+        label: 'Grant payouts',
+        tokens: [USDC],
+        bridge: [
+          { chain: 42161, to: [WETH], receive: [WETH] },
+          { chain: 42161, to: [USDC], receive: [USDC] },
+        ],
+      })
+    ).toThrow('bridges to chain "42161" twice')
+  })
+
+  it('refuses same-chain recipients that span chains', () => {
+    const eth = constellation(
+      { workspace: 'GG', label: 'test', chain: 1 },
+      { codegen }
+    )
+    const gno = constellation(
+      { workspace: 'GG', label: 'test', chain: 100 },
+      { codegen }
+    )
+
+    expect(() =>
+      transfer({
+        label: 'Grant payouts',
+        tokens: [USDC],
+        to: [eth.safe['GG DAO'], gno.safe['Treasury']],
+      })
+    ).toThrow('span chains "1" and "100"')
+  })
+
   it('refuses a bridge target with no chain to go on', () => {
     expect(() =>
       transfer({
