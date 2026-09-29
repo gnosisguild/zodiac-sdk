@@ -1,3 +1,4 @@
+import { config as loadDotenv } from 'dotenv'
 import { existsSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'url'
 import { dirname, resolve } from 'path'
@@ -175,6 +176,11 @@ export async function loadConfig(
   }
 
   const rootDir = dirname(absolutePath)
+
+  // `init` writes the API key and URL to the project's `.env`, which a CLI run
+  // from a subdirectory would not have loaded. Variables already set win.
+  loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
+
   const apiKey = await resolveApiKey(config, rootDir, options)
 
   return { ...config, apiKey, rootDir }

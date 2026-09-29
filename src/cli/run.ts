@@ -5,6 +5,7 @@ import { init } from './commands/init'
 import { loadConfig } from './config'
 import { pullOrg } from './commands/pullOrg'
 import { pullContracts } from './commands/pullContracts'
+import { pushEntrypoint } from './commands/push'
 
 // Load `.env` from the current working directory before reading any env vars.
 loadDotenv({ quiet: true })
@@ -25,7 +26,9 @@ export const run = async (argv: string[] = process.argv) => {
 
   program
     .name('zodiac')
-    .description('Zodiac SDK CLI – pull org data and contract ABIs')
+    .description(
+      'Zodiac SDK CLI – pull org data and contract ABIs, push constellations'
+    )
     .version(ownVersion())
     .option(
       '-c, --config <path>',
@@ -46,7 +49,9 @@ export const run = async (argv: string[] = process.argv) => {
   program.hook('postAction', async () => {
     const notice = await updateNotice
 
-    if (notice != null) {
+    // A command that reports its own failure sets the exit code instead of
+    // throwing, which still runs this hook.
+    if (notice != null && !process.exitCode) {
       console.warn(`\n${notice}`)
     }
   })
@@ -76,6 +81,26 @@ export const run = async (argv: string[] = process.argv) => {
       const config = await loadConfigOrInit(cmd.optsWithGlobals().config)
       await pullContracts(config)
     })
+
+  program
+    .command('push')
+    .description(
+      'Push the nodes an entrypoint exports to Zodiac and open them for review. Projects that set up globals for their entrypoint call `pushEntrypoint` from `@zodiaceco/sdk/cli/push` after that setup instead.'
+    )
+    .argument(
+      '[entrypoint]',
+      'module exporting the nodes (default: constellation/index.ts in the project root)'
+    )
+    .option('--no-open', 'do not open the review pages in a browser')
+    .action(
+      async (entrypoint: string | undefined, opts: { open: boolean }, cmd) => {
+        await pushEntrypoint({
+          entrypoint,
+          openInBrowser: opts.open,
+          config: cmd.optsWithGlobals().config,
+        })
+      }
+    )
 
   program
     .command('init')

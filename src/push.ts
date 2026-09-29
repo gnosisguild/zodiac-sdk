@@ -9,7 +9,7 @@ import {
   isDeFiKitEntry,
   toAnnotation,
 } from './permissionEntries'
-import { ApiClient } from './api'
+import { ApiClient, ApiRequestError, formatIssues } from './api'
 import type {
   ConstellationMeta,
   ConstellationNode,
@@ -20,6 +20,8 @@ import type {
 type PushOpts = {
   /** API client instance. Defaults to a client configured from environment variables. */
   api?: ApiClient
+  /** API key for the default client, instead of `ZODIAC_API_KEY`. */
+  apiKey?: string
 }
 
 /**
@@ -48,7 +50,7 @@ export async function push(
   nodes: ConstellationNode[] | { [key: string]: ConstellationNode },
   opts?: PushOpts
 ): Promise<ApplyConstellationResult[]> {
-  const api = opts?.api ?? new ApiClient()
+  const api = opts?.api ?? new ApiClient({ apiKey: opts?.apiKey })
   const refs = deriveRefs(nodes)
 
   // Group nodes by constellation (multiple constellations can be applied with a single call)
@@ -75,15 +77,65 @@ export async function push(
   const results: ApplyConstellationResult[] = []
   for (const { meta, nodes: groupNodes } of groups.values()) {
     const specification = groupNodes.map((n) => nodeToSpec(n, refs))
-    const result = await api.applyConstellation(meta.workspaceId, {
-      label: meta.label,
-      chain: meta.chain,
-      specification,
-    })
+    const result = await api
+      .applyConstellation(meta.workspaceId, {
+        label: meta.label,
+        chain: meta.chain,
+        specification,
+      })
+      .catch((error: unknown) => {
+        if (error instanceof ApiRequestError && error.issues.length > 0) {
+          throw new ConstellationRejectedError(meta.label, error, (index) => {
+            const node = groupNodes[index]
+
+            return node == null
+              ? `node ${index}`
+              : `${refs.byIdentity.get(node)} ("${node.label}")`
+          })
+        }
+
+        throw error
+      })
     results.push(result)
   }
 
   return results
+}
+
+/**
+ * Zodiac refused a constellation as it was pushed. Each issue names the node
+ * it concerns by the name it was pushed under, followed by the path within it.
+ */
+export class ConstellationRejectedError extends Error {
+  readonly issues: { path: string; message: string }[]
+
+  constructor(
+    label: string,
+    error: ApiRequestError,
+    nameNode: (index: number) => string
+  ) {
+    const issues = error.issues.map(({ path, message }) => {
+      const [root, index, ...rest] = path
+
+      return {
+        path:
+          root === 'specification' && typeof index === 'number'
+            ? [nameNode(index), ...rest].join(' › ')
+            : path.join(' › '),
+        message,
+      }
+    })
+
+    super(
+      formatIssues(
+        `Zodiac refused the constellation "${label}". ${error.reason}`,
+        issues
+      )
+    )
+
+    this.name = 'ConstellationRejectedError'
+    this.issues = issues
+  }
 }
 
 /**
@@ -214,6 +266,8 @@ function describeRoles(
         {
           key,
           members: resolveRefs(def.members, refs),
+          ...(def.policy != null && { policy: def.policy }),
+          ...(def.description != null && { description: def.description }),
           permissions: def.permissions.map((entry) => {
             assertRecipientChains(entry, chain)
 

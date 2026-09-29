@@ -6,6 +6,7 @@ export default defineConfig({
     actions: './src/actions.ts',
     cli: './src/cli/index.ts',
     'cli/config': './src/cli/config.ts',
+    'cli/push': './src/cli/commands/push.ts',
     'allow/index': './src/allow/index.ts',
   },
   format: 'esm',

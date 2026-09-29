@@ -256,7 +256,12 @@ Each helper covers a different kind of action:
   name one with `chain` when the recipients are plain addresses. Tokens without
   an Across route to a target are skipped, the same way the app skips them —
   routes change between writing a spec and deploying it — but a target nothing
-  can reach at all is refused at deploy rather than deployed half-working.
+  can reach at all is refused at deploy rather than deployed half-working. A
+  transfer bridges to each chain once: every recipient of a target may receive
+  every token it names, so recipients that receive other tokens on the same
+  chain get a transfer of their own. `transfer()` throws on a second target for
+  a chain, and on `to` recipients that live on different chains; `push()`
+  throws on `to` recipients off the role's chain, and on a bridge to it.
 - `defikit` mirrors the DeFi Kit allow kit — same protocols, verbs and
   parameters, plus a `label`. A DeFi Kit entry is nothing but its annotation;
   the permissions behind it are fetched from the annotation's uri at deploy, so
@@ -272,12 +277,35 @@ it has nowhere to appear in the app beyond the targets it allows.
 Allowance keys are plain labels — `key: 'usdc_payouts'` on the declaration, and
 `allowance: usdc_payouts` on the transfer, which reads the key off it. They are
 encoded to bytes32 when the constellation is deployed, so nothing calls
-`encodeKey` by hand. A label has to fit in 32 bytes.
+`encodeKey` by hand. Allowance and role keys consist of 1 to 31 letters,
+digits, underscores or hyphens.
 
 Tokens are named by address, not by symbol. A `transfer()` recipient may also
 be a node — an account from your codegen, or one bound by address — which
 stands for the address it lives at. A node whose address is only known once the
 constellation is deployed is rejected at compile time.
+
+### Showing accounts and roles in the Zodiac app
+
+A constellation deploys whatever it describes, but only what you mark shows up
+in the Zodiac app for the rest of your org:
+
+- **`vault: true`** on a Safe lists it under **Vaults**.
+- **`policy`** on a role lists it under **Policies**, labelled as given, so
+  everyone in your org can see what it permits right in the app. A
+  `description` is optional. In a template project, export both from the
+  role's folder:
+
+  ```ts
+  // constellation/roles/treasury_ops/index.ts
+  export const policy = 'Treasury Ops'
+  export const description = 'Day-to-day treasury operations'
+  ```
+
+  The role key (`treasury_ops`) is the policy's identity and its on-chain role
+  key, so renaming the label changes nothing on chain. Every Roles mod carrying
+  the key has to grant it the same way, and no two of them may act for the
+  same Safe.
 
 ### Pushing the constellation
 
@@ -297,12 +325,22 @@ By default, `push()` creates an API client from the `ZODIAC_API_KEY` environment
 await push({ ggDao, newRoles }, { api: new ApiClient({ apiKey: '...' }) })
 ```
 
+When Zodiac refuses a constellation as it stands — a policy it could not hold,
+a key it cannot encode — `push()` rejects with a `ConstellationRejectedError`
+that lists every issue, starting at the node you pushed. `zodiac push` prints
+it like this:
+
+```
+Zodiac refused the constellation "Production". Some policies of this constellation cannot be held in Zodiac:
+  • opsRoles ("Ops Roles") › roles › treasury_ops › policy: "Treasury Ops" is a policy on another Roles modifier. Mark this role as that policy too.
+```
+
 ## CLI reference
 
 ```
 Usage: zodiac [options] [command]
 
-Zodiac SDK CLI – pull org data and contract ABIs
+Zodiac SDK CLI – pull org data and contract ABIs, push constellations
 
 Options:
   -V, --version        output the version number
@@ -314,5 +352,19 @@ Commands:
   pull-org             Fetch Zodiac users and accounts, generate TypeScript types
   pull-contracts       Fetch contract ABIs, generate typed permissions kit
   pull                 Fetch Zodiac org and contracts ABI, generate SDK functions
+  push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser)
   help [command]       display help for command
+```
+
+`zodiac push` imports the entrypoint (`constellation/index.ts` by default),
+pushes every named export as a node, and prints where each constellation can be
+reviewed. When Zodiac refuses a constellation, it prints what was refused and
+exits with code 1. A project whose entrypoint relies on globals it sets up
+itself runs that setup first and then calls the same command:
+
+```ts
+import './globals'
+import { pushEntrypoint } from '@zodiaceco/sdk/cli/push'
+
+await pushEntrypoint({ entrypoint: process.argv[2] })
 ```

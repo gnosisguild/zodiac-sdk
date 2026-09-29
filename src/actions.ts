@@ -39,13 +39,17 @@ export const transfer = ({
   bridge = [],
   allowance,
 }: TransferParams): TransferEntry => {
+  const bridges = bridge.map(toBridgeTarget)
+
+  assertOneTargetPerChain(bridges)
+
   const entry: TransferEntry = {
     label,
     action: {
       type: 'transfer',
       tokens: [...tokens],
       to: to.map(toAddress),
-      ...(bridge.length > 0 && { bridge: bridge.map(toBridgeTarget) }),
+      ...(bridges.length > 0 && { bridge: bridges }),
       ...(allowance != null && { allowance: allowanceKey(allowance) }),
     },
   }
@@ -57,6 +61,15 @@ export const transfer = ({
       ? []
       : [recipient.chain]
   )
+
+  const [chain] = chains
+  const otherChain = chains.find((other) => other !== chain)
+
+  if (otherChain != null) {
+    throw new Error(
+      `The recipients of "${label}" span chains "${chain}" and "${otherChain}". \`to\` names recipients on the role's own chain; use \`bridge\` for the others.`
+    )
+  }
 
   if (chains.length > 0) {
     Object.defineProperty(entry, recipientChains, {
@@ -122,6 +135,24 @@ const toBridgeTarget = ({ chain, to, receive }: BridgeTarget) => ({
   to: to.map(toAddress),
   receive: [...receive],
 })
+
+/**
+ * Every recipient of a bridge target may receive every token it names, so two
+ * targets on one chain would merge into one that allows more than either.
+ */
+const assertOneTargetPerChain = (bridges: { chain: ChainId }[]) => {
+  const chains = new Set<ChainId>()
+
+  for (const { chain } of bridges) {
+    if (chains.has(chain)) {
+      throw new Error(
+        `A transfer bridges to each chain once, but this one bridges to chain "${chain}" twice. Write a separate transfer for recipients that receive other tokens on the same chain.`
+      )
+    }
+
+    chains.add(chain)
+  }
+}
 
 const destinationChain = (
   chain: ChainId | undefined,

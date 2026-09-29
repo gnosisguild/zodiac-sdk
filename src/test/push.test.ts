@@ -1,8 +1,10 @@
 import { describe, it, expect, mock } from 'bun:test'
 import { encodeKey } from 'zodiac-roles-sdk'
-import { push } from '../push'
+import { ApiRequestError } from '../api'
+import { ConstellationRejectedError, push } from '../push'
 import { constellation } from '../constellation'
 import * as codegen from './codegen.mock'
+import * as treasury_ops from './policyRole.mock'
 
 function mockApi() {
   const mockApply = mock(() => Promise.resolve({ ok: true }))
@@ -488,6 +490,151 @@ describe('push', () => {
       },
       deprecated: null,
     })
+  })
+
+  it('sends the policy a role is marked as', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const roles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        treasury_ops: {
+          members: [],
+          permissions: [],
+          policy: 'Treasury Ops',
+          description: 'Day-to-day treasury operations',
+        },
+      },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    expect(lastPayload().specification[1].roles.treasury_ops).toEqual({
+      key: 'treasury_ops',
+      members: [],
+      permissions: [],
+      policy: 'Treasury Ops',
+      description: 'Day-to-day treasury operations',
+    })
+  })
+
+  it('sends the policy a role folder exports', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const roles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: { treasury_ops },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    expect(lastPayload().specification[1].roles.treasury_ops).toEqual({
+      key: 'treasury_ops',
+      members: [],
+      permissions: [],
+      policy: 'Treasury Ops',
+    })
+  })
+
+  it('sends no policy fields for a role that is no policy', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const roles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: { eth_wrapping: { members: [], permissions: [] } },
+    })
+
+    const { api, lastPayload } = mockApi()
+    await push({ safe, roles }, { api })
+
+    const role = lastPayload().specification[1].roles.eth_wrapping
+
+    expect(role).not.toHaveProperty('policy')
+    expect(role).not.toHaveProperty('description')
+  })
+
+  it('refuses a description on a role that is no policy', () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        // @ts-expect-error — only a policy has a description
+        eth_wrapping: {
+          members: [],
+          permissions: [],
+          description: 'Wraps ETH',
+        },
+      },
+    })
+  })
+
+  it('names the pushed node an issue of a refused constellation concerns', async () => {
+    const eth = setup()
+
+    const safe = eth.safe['GG DAO']
+    const treasuryRoles = eth.roles['GG DAO']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        treasury_ops: { members: [], permissions: [], policy: 'Treasury' },
+      },
+    })
+
+    const api = {
+      applyConstellation: mock(() =>
+        Promise.reject(
+          new ApiRequestError(
+            'Some policies of this constellation cannot be held in Zodiac',
+            {
+              status: 400,
+              statusText: 'Bad Request',
+              details: {
+                issues: [
+                  {
+                    path: [
+                      'specification',
+                      1,
+                      'roles',
+                      'treasury_ops',
+                      'policy',
+                    ],
+                    message: 'Mark this role as that policy too.',
+                  },
+                ],
+              },
+            }
+          )
+        )
+      ),
+    } as any
+
+    const pushed = push({ safe, treasuryRoles }, { api })
+
+    await expect(pushed).rejects.toBeInstanceOf(ConstellationRejectedError)
+    await expect(pushed).rejects.toThrow(
+      'treasuryRoles ("GG DAO") › roles › treasury_ops › policy: Mark this role as that policy too.'
+    )
   })
 
   it('throws for invalid nodes', async () => {
