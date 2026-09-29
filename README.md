@@ -260,7 +260,8 @@ Each helper covers a different kind of action:
   transfer bridges to each chain once: every recipient of a target may receive
   every token it names, so recipients that receive other tokens on the same
   chain get a transfer of their own. `transfer()` throws on a second target for
-  a chain, and on `to` recipients that live on different chains.
+  a chain, and on `to` recipients that live on different chains; `push()`
+  throws on `to` recipients off the role's chain, and on a bridge to it.
 - `defikit` mirrors the DeFi Kit allow kit — same protocols, verbs and
   parameters, plus a `label`. A DeFi Kit entry is nothing but its annotation;
   the permissions behind it are fetched from the annotation's uri at deploy, so

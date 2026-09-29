@@ -192,6 +192,38 @@ describe('actions', () => {
     ).toThrow('span chains "1" and "100"')
   })
 
+  it("refuses pushing a bridge to the role's own chain", async () => {
+    const { api } = mockApi()
+    const eth = constellation(
+      { workspace: 'GG', label: 'test', chain: 1 },
+      { codegen }
+    )
+    const safe = eth.safe['GG DAO']
+
+    const roles = eth.roles['New Roles']({
+      nonce: 0n,
+      owner: safe,
+      target: safe,
+      avatar: safe,
+      roles: {
+        treasury_ops: {
+          members: [],
+          permissions: [
+            transfer({
+              label: 'Grant payouts',
+              tokens: [USDC],
+              bridge: [{ to: [safe], receive: [WETH] }],
+            }),
+          ],
+        },
+      },
+    })
+
+    expect(() => push([safe, roles], { api })).toThrow(
+      '"Grant payouts" bridges to chain "1", the role\'s own chain'
+    )
+  })
+
   it('refuses a bridge target with no chain to go on', () => {
     expect(() =>
       transfer({

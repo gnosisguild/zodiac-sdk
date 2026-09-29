@@ -69,6 +69,18 @@ export const assertRecipientChains = (
       )
     }
   }
+
+  if (!('action' in entry) || entry.action.type !== 'transfer') {
+    return
+  }
+
+  for (const target of entry.action.bridge ?? []) {
+    if (target.chain === chain) {
+      throw new Error(
+        `"${entry.label}" bridges to chain "${chain}", the role's own chain. Name those recipients in \`to\` instead.`
+      )
+    }
+  }
 }
 
 /**
