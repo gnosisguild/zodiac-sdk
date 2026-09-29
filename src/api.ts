@@ -4,6 +4,7 @@ import type {
   ResolveConstellationPayload,
   ResolveConstellationResult,
   ApiError as ApiErrorResponse,
+  ApiErrorIssue,
   ListAccountsResult,
   ListUsersResult,
 } from '@zodiaceco/api-types'
@@ -126,18 +127,12 @@ export class ApiClient {
   }
 }
 
-/** One thing the API refused, and where in the request it is. */
-export type ApiIssue = {
-  path: (string | number)[]
-  message: string
-}
-
 export class ApiRequestError extends Error {
   public readonly status: number
   public readonly statusText: string
   public readonly details?: unknown
   /** What the API refused, when it could name each problem. */
-  public readonly issues: ApiIssue[]
+  public readonly issues: ApiErrorIssue[]
   /** The API's own summary of the problem. */
   public readonly reason: string
 
@@ -222,7 +217,7 @@ async function handleApiError(response: Response): Promise<never> {
  * The issues of an error response, each naming where in the request it is.
  * Anything that does not look like one is left to the raw details.
  */
-const readIssues = (details: unknown): ApiIssue[] => {
+const readIssues = (details: unknown): ApiErrorIssue[] => {
   if (
     typeof details !== 'object' ||
     details == null ||
@@ -237,7 +232,7 @@ const readIssues = (details: unknown): ApiIssue[] => {
     return []
   }
 
-  return issues.flatMap((issue): ApiIssue[] =>
+  return issues.flatMap((issue): ApiErrorIssue[] =>
     typeof issue === 'object' &&
     issue != null &&
     Array.isArray(issue.path) &&
@@ -250,7 +245,7 @@ const readIssues = (details: unknown): ApiIssue[] => {
 /** A headline and one line per issue, the way a terminal reads best. */
 export const formatIssues = (
   headline: string,
-  issues: { path: string; message: string }[] | ApiIssue[]
+  issues: { path: string; message: string }[] | ApiErrorIssue[]
 ) =>
   [
     `${headline}:`,
