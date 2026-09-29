@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.3.0...v2.4.0) (2026-09-29)
+
+
+### Features
+
+* mark a role as a policy ([#70](https://github.com/gnosisguild/zodiac-sdk/issues/70)) ([6570572](https://github.com/gnosisguild/zodiac-sdk/commit/6570572b124c5c483d17a789d0bcb74970253993))
+
 ## [2.3.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.2.0...v2.3.0) (2026-09-15)
 
 
