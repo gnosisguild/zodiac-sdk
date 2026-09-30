@@ -4,10 +4,13 @@ import type {
   ChainId,
 } from '@zodiaceco/api-types'
 import { invariant } from '@epic-web/invariant'
+import { coercePermission } from 'zodiac-roles-sdk'
 import {
   assertRecipientChains,
   isDeFiKitEntry,
   toAnnotation,
+  type ConstellationPermission,
+  type PermissionEntry,
 } from './permissionEntries'
 import { ApiClient, ApiRequestError, formatIssues } from './api'
 import type {
@@ -246,9 +249,10 @@ function nodeToSpec(
 
 /**
  * Entries travel to the API as they were written — parameters and labels — and
- * are compiled when the constellation is deployed. Only a DeFi Kit entry is
- * rendered here, into the annotation uri that names the chain it was written
- * for; the permissions behind it are fetched from that uri at deploy.
+ * are compiled when the constellation is deployed. Two kinds are rendered
+ * here. A DeFi Kit entry becomes the annotation uri that names the chain it
+ * was written for; the permissions behind it are fetched from that uri at
+ * deploy. A hand-written permission is settled into what JSON can carry.
  */
 function describeRoles(
   roles: Record<string, RoleDef | null>,
@@ -271,18 +275,86 @@ function describeRoles(
           permissions: def.permissions.map((entry) => {
             assertRecipientChains(entry, chain)
 
-            return resolveRefs(
-              isDeFiKitEntry(entry)
-                ? { label: entry.label, annotation: toAnnotation(entry, chain) }
-                : entry,
-              refs
-            )
+            return resolveRefs(describeEntry(entry, key, chain), refs)
           }),
         },
       ] as const
     })
   )
 }
+
+function describeEntry(entry: PermissionEntry, role: string, chain: ChainId) {
+  if (isDeFiKitEntry(entry)) {
+    return { label: entry.label, annotation: toAnnotation(entry, chain) }
+  }
+
+  if ('permissions' in entry) {
+    return {
+      ...entry,
+      permissions: entry.permissions.map((permission) =>
+        settlePermission(permission, role)
+      ),
+    }
+  }
+
+  return 'targetAddress' in entry ? settlePermission(entry, role) : entry
+}
+
+const PERMISSION_KEYS = new Set([
+  'targetAddress',
+  'selector',
+  'signature',
+  'condition',
+  'send',
+  'delegatecall',
+])
+
+/**
+ * A permission as JSON can carry it. A condition may still be a function,
+ * which only this side can evaluate and which would be dropped on the way,
+ * leaving the function it scopes open to any parameters. A signature becomes
+ * the selector it names, so one that names nothing fails here rather than at
+ * the API.
+ *
+ * A key no permission has is refused for the same reason a dropped condition
+ * is: `conditon` would vanish and take the scoping with it.
+ */
+function settlePermission(permission: ConstellationPermission, role: string) {
+  const unknown = Object.keys(permission).find(
+    (key) => !PERMISSION_KEYS.has(key)
+  )
+
+  invariant(
+    unknown == null,
+    `A permission of role "${role}" has an unknown key "${unknown}"`
+  )
+  invariant(
+    !('selector' in permission && 'signature' in permission),
+    `A permission of role "${role}" names its function by both \`selector\` and \`signature\``
+  )
+
+  // The target may be a node, which is resolved to a reference afterwards and
+  // plays no part in what is settled here.
+  const { targetAddress, ...rest } = permission
+
+  try {
+    return {
+      ...coercePermission({ ...rest, targetAddress: PLACEHOLDER_TARGET }),
+      targetAddress,
+    }
+  } catch (error) {
+    if ('signature' in permission) {
+      throw new Error(
+        `A permission of role "${role}" names the function "${permission.signature}", which is not a function signature`,
+        { cause: error }
+      )
+    }
+
+    throw error
+  }
+}
+
+const PLACEHOLDER_TARGET = '0x0000000000000000000000000000000000000000'
 
 function resolveRefs(value: unknown, refs: RefsIndex): unknown {
   if (isConstellationNode(value)) {
