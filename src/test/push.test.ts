@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from 'bun:test'
-import { encodeKey } from 'zodiac-roles-sdk'
+import { c, encodeKey, Operator, ParameterType } from 'zodiac-roles-sdk'
 import { ApiRequestError } from '../api'
 import { ConstellationRejectedError, push } from '../push'
 import { constellation } from '../constellation'
@@ -642,5 +642,165 @@ describe('push', () => {
     expect(() => push([{ not: 'a node' } as any], { api })).toThrow(
       'unexpected node input'
     )
+  })
+  // A permission travels as JSON, which has no place for what only this side
+  // can work out. Whatever would be lost on the way is settled before it goes.
+  describe('hand-written permissions', () => {
+    const TOKEN = '0x6b175474e89094c44da98b954eedeac495271d0f'
+    const RECIPIENT = '0xbbbb00000000000000000000000000000000bbbb'
+
+    const nodesWith = (permissions: any[]) => {
+      const eth = setup()
+      const dao = eth.safe['GG DAO']
+      const roles = eth.roles['New Roles']({
+        nonce: 0n,
+        target: dao,
+        owner: dao,
+        avatar: dao,
+        roles: { ops: { members: [], permissions } },
+      })
+
+      return { dao, roles }
+    }
+
+    const pushed = async (permissions: any[]) => {
+      const { api, lastPayload } = mockApi()
+      await push(nodesWith(permissions), { api })
+
+      // What the API receives: a payload is serialized on its way there.
+      return JSON.parse(JSON.stringify(lastPayload())).specification[1].roles
+        .ops.permissions
+    }
+
+    it('sends a function named by its signature as its selector', async () => {
+      expect(
+        await pushed([
+          { targetAddress: TOKEN, signature: 'transfer(address,uint256)' },
+        ])
+      ).toEqual([
+        {
+          targetAddress: TOKEN,
+          selector: '0xa9059cbb',
+          send: false,
+          delegatecall: false,
+        },
+      ])
+    })
+
+    it('evaluates a condition that was left as a function', async () => {
+      const [permission] = await pushed([
+        {
+          targetAddress: TOKEN,
+          signature: 'transfer(address,uint256)',
+          // Without the final call this is a function, which JSON drops.
+          condition: c.calldataMatches([RECIPIENT], ['address', 'uint256']),
+        },
+      ])
+
+      expect(permission.condition).toMatchObject({
+        paramType: ParameterType.Calldata,
+        operator: Operator.Matches,
+      })
+    })
+
+    it('does the same inside a labelled group', async () => {
+      const [entry] = await pushed([
+        {
+          label: 'Payouts',
+          permissions: [
+            {
+              targetAddress: TOKEN,
+              signature: 'transfer(address,uint256)',
+              condition: c.calldataMatches([RECIPIENT], ['address', 'uint256']),
+            },
+          ],
+        },
+      ])
+
+      expect(entry.label).toBe('Payouts')
+      expect(entry.permissions[0].selector).toBe('0xa9059cbb')
+      expect(entry.permissions[0].condition).toBeDefined()
+    })
+
+    it('keeps a node named as the target', async () => {
+      const eth = setup()
+      const safe = eth.safe['New Safe']({ nonce: 0n, threshold: 1, owners: [] })
+      const roles = eth.roles['New Roles']({
+        nonce: 0n,
+        target: safe,
+        owner: safe,
+        avatar: safe,
+        roles: {
+          ops: {
+            members: [],
+            permissions: [
+              { targetAddress: safe, signature: 'setGuard(address)' },
+            ],
+          },
+        },
+      })
+
+      const { api, lastPayload } = mockApi()
+      await push({ safe, roles }, { api })
+
+      expect(
+        lastPayload().specification[1].roles.ops.permissions[0]
+      ).toMatchObject({ targetAddress: '$safe', selector: '0xe19a9dd9' })
+    })
+
+    it('keeps a permission that allows the whole target', async () => {
+      expect(await pushed([{ targetAddress: TOKEN, send: true }])).toEqual([
+        { targetAddress: TOKEN, send: true, delegatecall: false },
+      ])
+    })
+
+    it('refuses a key no permission has, before anything is sent', async () => {
+      const { api } = mockApi()
+
+      expect(() =>
+        push(
+          nodesWith([
+            {
+              targetAddress: TOKEN,
+              selector: '0xa9059cbb',
+              conditon: c.calldataMatches([RECIPIENT], ['address', 'uint256']),
+            },
+          ]),
+          { api }
+        )
+      ).toThrow('A permission of role "ops" has an unknown key "conditon"')
+      expect(api.applyConstellation).not.toHaveBeenCalled()
+    })
+
+    it('refuses a signature that names no function', async () => {
+      const { api } = mockApi()
+
+      expect(() =>
+        push(nodesWith([{ targetAddress: TOKEN, signature: 'transfer(' }]), {
+          api,
+        })
+      ).toThrow(
+        'A permission of role "ops" names the function "transfer(", which is not a function signature'
+      )
+    })
+
+    it('refuses a function named twice', async () => {
+      const { api } = mockApi()
+
+      expect(() =>
+        push(
+          nodesWith([
+            {
+              targetAddress: TOKEN,
+              selector: '0xa9059cbb',
+              signature: 'transfer(address,uint256)',
+            },
+          ]),
+          { api }
+        )
+      ).toThrow(
+        'A permission of role "ops" names its function by both `selector` and `signature`'
+      )
+    })
   })
 })
