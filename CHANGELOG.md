@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.1](https://github.com/gnosisguild/zodiac-sdk/compare/v2.4.0...v2.4.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* encode the allowance keys named in allow kit options ([#72](https://github.com/gnosisguild/zodiac-sdk/issues/72)) ([7be32ed](https://github.com/gnosisguild/zodiac-sdk/commit/7be32ed232830bf93948eeaa462c46d1cca916ad))
+* settle hand-written permissions before they are pushed ([#73](https://github.com/gnosisguild/zodiac-sdk/issues/73)) ([c76372c](https://github.com/gnosisguild/zodiac-sdk/commit/c76372c11cc8c0d072a5edce04843807497935f1))
+
 ## [2.4.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.3.0...v2.4.0) (2026-09-29)
 
 
