@@ -112,7 +112,13 @@ export type AllowanceKey = string
 
 export type SwapEntry = {
   label: string
-  action: { type: 'swap'; sell: Address[]; buy: Address[] }
+  action: {
+    type: 'swap'
+    sell: Address[]
+    buy: Address[]
+    sellAllowance?: AllowanceKey
+    buyAllowance?: AllowanceKey
+  }
 }
 
 export type TransferEntry = {
