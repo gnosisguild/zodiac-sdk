@@ -37,6 +37,52 @@ describe('actions', () => {
     })
   })
 
+  it('describes a swap by the allowance keys that cap each side', () => {
+    expect(
+      swap({
+        label: 'Rebalance stables',
+        sell: [USDC],
+        buy: [WETH],
+        sellAllowance: 'usdc_sell',
+        buyAllowance: 'weth_buy',
+      })
+    ).toEqual({
+      label: 'Rebalance stables',
+      action: {
+        type: 'swap',
+        sell: [USDC],
+        buy: [WETH],
+        sellAllowance: 'usdc_sell',
+        buyAllowance: 'weth_buy',
+      },
+    })
+  })
+
+  it('takes the key of an allowance passed to a swap', () => {
+    const allowance = {
+      key: '0x757364635f73656c6c0000000000000000000000000000000000000000000000',
+      refill: 0n,
+      maxRefill: 0n,
+      period: 0n,
+      balance: 0n,
+      timestamp: 0n,
+    } as const
+
+    expect(
+      swap({
+        label: 'Rebalance stables',
+        sell: [USDC],
+        buy: [WETH],
+        sellAllowance: allowance,
+      }).action
+    ).toEqual({
+      type: 'swap',
+      sell: [USDC],
+      buy: [WETH],
+      sellAllowance: allowance.key,
+    })
+  })
+
   it('describes a transfer by the allowance key that caps it', () => {
     // An encoded key here, not a label: `AllowanceSpec` is typed from the
     // published api-types, which still pins `key` to hex. Both forms resolve

@@ -22,9 +22,23 @@ export type { Permissions } from './permissionEntries'
  * never here — a stored revision that carried its own copy would go stale as
  * soon as the compiler changed.
  */
-export const swap = ({ label, sell, buy }: SwapParams): SwapEntry => ({
+export const swap = ({
   label,
-  action: { type: 'swap', sell: [...sell], buy: [...buy] },
+  sell,
+  buy,
+  sellAllowance,
+  buyAllowance,
+}: SwapParams): SwapEntry => ({
+  label,
+  action: {
+    type: 'swap',
+    sell: [...sell],
+    buy: [...buy],
+    ...(sellAllowance != null && {
+      sellAllowance: allowanceKey(sellAllowance),
+    }),
+    ...(buyAllowance != null && { buyAllowance: allowanceKey(buyAllowance) }),
+  },
 })
 
 /**
@@ -190,6 +204,12 @@ type SwapParams = {
   sell: readonly Address[]
   /** Tokens the role may buy. */
   buy: readonly Address[]
+  /** Allowance capping what may be sold, across every token in `sell`. Pass
+   * the allowance declared on the roles modifier, or its key. */
+  sellAllowance?: AllowanceSpec | AllowanceKey
+  /** Allowance capping what may be bought, across every token in `buy`. Pass
+   * the allowance declared on the roles modifier, or its key. */
+  buyAllowance?: AllowanceSpec | AllowanceKey
 }
 
 type TransferParams = {

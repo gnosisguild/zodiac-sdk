@@ -247,7 +247,10 @@ const treasuryRoles = eth.roles['GG Treasury Roles']({
 
 Each helper covers a different kind of action:
 
-- `swap()` allows signing CoW orders between the tokens it names.
+- `swap()` allows signing CoW orders between the tokens it names, optionally
+  capped by allowances declared on the same Roles mod: `sellAllowance` caps
+  what may be sold across every token in `sell`, `buyAllowance` what may be
+  bought across every token in `buy`. Either one can be set on its own.
 - `transfer()` allows sending tokens to the addresses it names, optionally
   capped by an allowance declared on the same Roles mod. Pass the zero address
   to allow sending the native token. `bridge` names destinations on other
