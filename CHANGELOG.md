@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.4.1...v2.5.0) (2026-10-06)
+
+
+### Features
+
+* cap each side of a swap with an allowance ([#75](https://github.com/gnosisguild/zodiac-sdk/issues/75)) ([4d58331](https://github.com/gnosisguild/zodiac-sdk/commit/4d583318fe2caeccc4de701a93806017b4323796))
+
 ## [2.4.1](https://github.com/gnosisguild/zodiac-sdk/compare/v2.4.0...v2.4.1) (2026-10-01)
 
 
