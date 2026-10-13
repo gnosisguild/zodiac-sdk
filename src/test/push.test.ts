@@ -41,6 +41,27 @@ describe('push', () => {
     })
   })
 
+  it('pushes where the constellation is defined', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.safe['GG DAO']], {
+      api,
+      source: 'https://github.com/gnosisguild/treasury',
+    })
+
+    expect(lastPayload().source).toBe('https://github.com/gnosisguild/treasury')
+  })
+
+  it('leaves the source out when it is not given', async () => {
+    const eth = setup()
+
+    const { api, lastPayload } = mockApi()
+    await push([eth.safe['GG DAO']], { api })
+
+    expect(lastPayload()).not.toHaveProperty('source')
+  })
+
   it('pushes only the fields a reference declares', async () => {
     const eth = setup()
 

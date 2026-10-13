@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -89,7 +90,10 @@ describe('pushEntrypoint', () => {
 
     await pushEntrypoint({ ...createProject(), openInBrowser: false })
 
-    expect(mockPush).toHaveBeenCalledWith({}, { apiKey: 'zodiac_from_config' })
+    expect(mockPush).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ apiKey: 'zodiac_from_config' })
+    )
   })
 
   it("pushes the project root's constellation by default, wherever it runs", async () => {
@@ -109,6 +113,60 @@ describe('pushEntrypoint', () => {
     expect(mockPush).toHaveBeenCalledWith(
       { ops: 'from the root' },
       expect.anything()
+    )
+  })
+
+  it('pushes the repository the entrypoint is checked out from as its source', async () => {
+    mockPush.mockResolvedValue([])
+
+    const project = createProject()
+    const root = join(project.config, '..')
+
+    spawnSync('git', ['init', '--quiet', root])
+    spawnSync('git', [
+      '-C',
+      root,
+      'remote',
+      'add',
+      'origin',
+      'git@github.com:gnosisguild/treasury.git',
+    ])
+
+    const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, ZODIAC_SOURCE } = process.env
+    delete process.env.GITHUB_SERVER_URL
+    delete process.env.GITHUB_REPOSITORY
+    delete process.env.ZODIAC_SOURCE
+
+    try {
+      await pushEntrypoint({ ...project, openInBrowser: false })
+    } finally {
+      Object.assign(process.env, {
+        GITHUB_SERVER_URL,
+        GITHUB_REPOSITORY,
+        ZODIAC_SOURCE,
+      })
+    }
+
+    expect(mockPush).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        source: 'https://github.com/gnosisguild/treasury',
+      })
+    )
+  })
+
+  it('pushes the source it is given', async () => {
+    mockPush.mockResolvedValue([])
+
+    await pushEntrypoint({
+      ...createProject(),
+      openInBrowser: false,
+      source: 'https://example.com/treasury',
+    })
+
+    expect(mockPush).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ source: 'https://example.com/treasury' })
     )
   })
 })
