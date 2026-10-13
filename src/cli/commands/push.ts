@@ -1,8 +1,9 @@
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import open from 'open'
 import { ConstellationRejectedError, push } from '../../push'
 import { loadConfig } from '../config'
+import { findSource } from '../source'
 
 const DEFAULT_ENTRYPOINT = 'constellation/index.ts'
 
@@ -14,6 +15,9 @@ type PushEntrypointOptions = {
   openInBrowser?: boolean
   /** The config file whose API key to push with, as for `zodiac pull`. */
   config?: string
+  /** Where the constellations are defined. @default the repository the
+   * entrypoint is checked out from, see {@link findSource} */
+  source?: string
 }
 
 /**
@@ -28,6 +32,7 @@ export const pushEntrypoint = async ({
   entrypoint,
   openInBrowser = true,
   config: configPath,
+  source,
 }: PushEntrypointOptions = {}) => {
   const { apiKey, rootDir } = await loadConfig(configPath)
   const entrypointPath =
@@ -46,7 +51,10 @@ export const pushEntrypoint = async ({
   }
 
   try {
-    const results = await push(nodes, { apiKey })
+    const results = await push(nodes, {
+      apiKey,
+      source: source ?? (await findSource(dirname(entrypointPath))),
+    })
 
     for (const { url } of results) {
       console.log(`Pushed constellation to: ${url}`)

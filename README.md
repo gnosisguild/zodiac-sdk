@@ -331,6 +331,15 @@ By default, `push()` creates an API client from the `ZODIAC_API_KEY` environment
 await push({ ggDao, newRoles }, { api: new ApiClient({ apiKey: '...' }) })
 ```
 
+Zodiac shows each constellation's source, the place its code lives, and links
+to it. `zodiac push` sends the web page of the git repository the entrypoint is
+checked out from, so a push from a clone of `git@github.com:org/repo.git` shows
+up as `org/repo`. The remote's credentials never leave your machine. In a
+GitHub workflow the repository the workflow runs for is sent instead. To name a
+different source, set `ZODIAC_SOURCE` or pass `--source <url>`; when calling
+`push()` yourself, pass `{ source }`. A push that names no source keeps the one
+Zodiac already holds.
+
 When Zodiac refuses a constellation as it stands — a policy it could not hold,
 a key it cannot encode — `push()` rejects with a `ConstellationRejectedError`
 that lists every issue, starting at the node you pushed. `zodiac push` prints
@@ -358,7 +367,7 @@ Commands:
   pull-org             Fetch Zodiac users and accounts, generate TypeScript types
   pull-contracts       Fetch contract ABIs, generate typed permissions kit
   pull                 Fetch Zodiac org and contracts ABI, generate SDK functions
-  push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser)
+  push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser, --source <url> to name where they are defined)
   help [command]       display help for command
 ```
 

@@ -92,12 +92,21 @@ export const run = async (argv: string[] = process.argv) => {
       'module exporting the nodes (default: constellation/index.ts in the project root)'
     )
     .option('--no-open', 'do not open the review pages in a browser')
+    .option(
+      '--source <url>',
+      'where the constellations are defined (default: ZODIAC_SOURCE, or the git repository the entrypoint is checked out from)'
+    )
     .action(
-      async (entrypoint: string | undefined, opts: { open: boolean }, cmd) => {
+      async (
+        entrypoint: string | undefined,
+        opts: { open: boolean; source?: string },
+        cmd
+      ) => {
         await pushEntrypoint({
           entrypoint,
           openInBrowser: opts.open,
           config: cmd.optsWithGlobals().config,
+          source: opts.source,
         })
       }
     )

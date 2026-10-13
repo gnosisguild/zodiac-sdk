@@ -25,6 +25,11 @@ type PushOpts = {
   api?: ApiClient
   /** API key for the default client, instead of `ZODIAC_API_KEY`. */
   apiKey?: string
+  /**
+   * Where the code defining these constellations lives, e.g. its repository's
+   * url. Zodiac links to it. Leaving it out keeps the source Zodiac holds.
+   */
+  source?: string
 }
 
 /**
@@ -84,6 +89,7 @@ export async function push(
       .applyConstellation(meta.workspaceId, {
         label: meta.label,
         chain: meta.chain,
+        ...(opts?.source != null && { source: opts.source }),
         specification,
       })
       .catch((error: unknown) => {
