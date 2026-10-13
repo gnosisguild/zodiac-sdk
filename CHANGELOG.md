@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.5.0...v2.6.0) (2026-10-13)
+
+
+### Features
+
+* push where the constellation is defined ([#77](https://github.com/gnosisguild/zodiac-sdk/issues/77)) ([f1d9a8f](https://github.com/gnosisguild/zodiac-sdk/commit/f1d9a8f608b5cf3132a23cca10c4c7e647561434))
+
 ## [2.5.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.4.1...v2.5.0) (2026-10-06)
 
 
