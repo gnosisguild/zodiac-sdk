@@ -49,6 +49,8 @@ describe('webUrlOfRemote', () => {
   it.each([
     ['/srv/git/treasury.git'],
     ['file:///srv/git/treasury.git'],
+    ['C:\\repos\\treasury.git'],
+    ['C:/repos/treasury.git'],
     ['../treasury'],
     [''],
   ])('names no web page for %p', (remote) => {
