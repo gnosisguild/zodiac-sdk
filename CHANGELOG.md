@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.6.0...v2.7.0) (2026-10-14)
+
+
+### Features
+
+* **cli:** pull-contracts needs no API key and can export its types ([#79](https://github.com/gnosisguild/zodiac-sdk/issues/79)) ([dfe564f](https://github.com/gnosisguild/zodiac-sdk/commit/dfe564ff3281dccd83e3306e84a404a4fc726d31))
+
 ## [2.6.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.5.0...v2.6.0) (2026-10-13)
 
 
