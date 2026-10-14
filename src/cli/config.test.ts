@@ -9,7 +9,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ensureConfigStub, loadConfig } from './config'
+import { ensureConfigStub, loadConfig, loadProjectConfig } from './config'
 
 const ENV_KEY = 'ZODIAC_API_KEY'
 
@@ -191,6 +191,29 @@ describe('loadConfig', () => {
     // macOS: tmpdir() lives under /var (symlink), process.cwd() canonicalizes
     // to /private/var; compare via realpath so we don't get false negatives.
     expect(config.rootDir).toBe(realpathSync(tmpDir))
+  })
+})
+
+describe('loadProjectConfig', () => {
+  it('loads a config when no API key is set anywhere', async () => {
+    writeConfig(
+      `{ contracts: { eth: { weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' } } }`
+    )
+
+    await expect(loadProjectConfig('zodiac.config.ts')).resolves.toEqual({
+      contracts: {
+        eth: { weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' },
+      },
+      rootDir: realpathSync(tmpDir),
+    })
+  })
+
+  it('leaves out an API key the config sets, even a malformed one', async () => {
+    writeConfig(`{ apiKey: 'not-a-key' }`)
+
+    await expect(
+      loadProjectConfig('zodiac.config.ts')
+    ).resolves.not.toHaveProperty('apiKey')
   })
 })
 

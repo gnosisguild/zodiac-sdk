@@ -2,7 +2,7 @@ import { Command } from 'commander'
 import { config as loadDotenv } from 'dotenv'
 import { checkForUpdate, ownVersion } from './checkForUpdate'
 import { init } from './commands/init'
-import { loadConfig } from './config'
+import { loadConfig, loadProjectConfig } from './config'
 import { pullOrg } from './commands/pullOrg'
 import { pullContracts } from './commands/pullContracts'
 import { pushEntrypoint } from './commands/push'
@@ -76,10 +76,20 @@ export const run = async (argv: string[] = process.argv) => {
 
   program
     .command('pull-contracts')
-    .description('Fetch contract ABIs, generate typed permissions kit')
-    .action(async (_opts, cmd) => {
-      const config = await loadConfigOrInit(cmd.optsWithGlobals().config)
-      await pullContracts(config)
+    .description(
+      'Fetch contract ABIs, generate typed permissions kit. Needs no API key.'
+    )
+    .option(
+      '--module <file>',
+      'write the kit types to <file> as an exported `AllowKit` instead of augmenting the global one (for packages)'
+    )
+    .action(async (opts: { module?: string }, cmd) => {
+      // Fetching ABIs never calls the Zodiac API, so this doesn't ask for a
+      // key, let alone start authorization to mint one.
+      const config = await loadProjectConfig(cmd.optsWithGlobals().config, {
+        createIfMissing: true,
+      })
+      await pullContracts(config, { module: opts.module })
     })
 
   program
