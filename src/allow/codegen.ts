@@ -5,9 +5,15 @@ import type { Abi, AbiFragment } from './fetch'
 
 // Emits named tuple elements per ABI input — this is the reason we don't rely
 // on viem/abitype, which produces unnamed tuples (microsoft/TypeScript#44939).
+//
+// By default the kit augments the global `AllowKit`, which a constellation's
+// `allow` global is typed by. With `module`, it's exported as `AllowKit`
+// instead, for a package that builds its own kit and must leave its users'
+// globals alone.
 export function generateAllowTypes(
   abisDir: string,
-  contractsConfig: Record<string, any>
+  contractsConfig: Record<string, any>,
+  { module = false }: { module?: boolean } = {}
 ): string {
   type Tree = Map<string, Tree | { node: ContractNode; abi: Abi }>
 
@@ -26,11 +32,15 @@ export function generateAllowTypes(
     `import type { Scoping, Options, EVERYTHING, FunctionPermission, TargetPermission } from "@zodiaceco/sdk/allow";`
   )
   out.push('')
-  out.push('declare global {')
-  out.push('  interface AllowKit ' + renderTree(root, '  '))
-  out.push('}')
-  out.push('')
-  out.push('export {};')
+  if (module) {
+    out.push('export interface AllowKit ' + renderTree(root, ''))
+  } else {
+    out.push('declare global {')
+    out.push('  interface AllowKit ' + renderTree(root, '  '))
+    out.push('}')
+    out.push('')
+    out.push('export {};')
+  }
   out.push('')
   return out.join('\n')
 }

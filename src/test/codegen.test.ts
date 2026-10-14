@@ -68,6 +68,21 @@ afterEach(() => {
 })
 
 describe('generateAllowTypes', () => {
+  it('augments the global AllowKit by default', () => {
+    const generated = generateAllowTypes(abisDir, CONTRACTS)
+
+    expect(generated).toContain('declare global {\n  interface AllowKit {')
+    expect(generated).not.toContain('export interface AllowKit')
+  })
+
+  it('exports AllowKit instead with `module`', () => {
+    const generated = generateAllowTypes(abisDir, CONTRACTS, { module: true })
+
+    expect(generated).toContain('export interface AllowKit {\n  eth: {')
+    expect(generated).not.toContain('declare global')
+    expect(generated).toMatch(/^\s+redeem: \(/m)
+  })
+
   it('declares an overloaded function once per signature, never bare', () => {
     const generated = generateAllowTypes(abisDir, CONTRACTS)
 

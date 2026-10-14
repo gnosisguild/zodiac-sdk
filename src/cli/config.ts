@@ -31,10 +31,14 @@ export interface ZodiacConfig {
   abisDir?: string
 }
 
-/** User-provided config plus the resolved API key + project root. */
-export interface ResolvedConfig extends Omit<ZodiacConfig, 'apiKey'> {
-  apiKey: `zodiac_${string}`
+/** User-provided config plus the project root, without an API key. */
+export interface ProjectConfig extends Omit<ZodiacConfig, 'apiKey'> {
   rootDir: string
+}
+
+/** User-provided config plus the resolved API key + project root. */
+export interface ResolvedConfig extends ProjectConfig {
+  apiKey: `zodiac_${string}`
 }
 
 /**
@@ -144,10 +148,39 @@ const resolveConfigPath = (projectRoot: string, configPath: string): string => {
   return explicit
 }
 
+/**
+ * The config without an API key, for commands that never call the Zodiac API
+ * (`pull-contracts`). An `apiKey` in the file is left out rather than checked.
+ */
+export async function loadProjectConfig(
+  configPath: string = DEFAULT_CONFIG_PATH,
+  options: Pick<LoadConfigOptions, 'createIfMissing'> = {}
+): Promise<ProjectConfig> {
+  const { config, rootDir } = await readConfig(configPath, options)
+  const { apiKey: _, ...rest } = config
+
+  return { ...rest, rootDir }
+}
+
 export async function loadConfig(
   configPath: string = DEFAULT_CONFIG_PATH,
   options: LoadConfigOptions = {}
 ): Promise<ResolvedConfig> {
+  const { config, rootDir } = await readConfig(configPath, options)
+
+  // `init` writes the API key and URL to the project's `.env`, which a CLI run
+  // from a subdirectory would not have loaded. Variables already set win.
+  loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
+
+  const apiKey = await resolveApiKey(config, rootDir, options)
+
+  return { ...config, apiKey, rootDir }
+}
+
+const readConfig = async (
+  configPath: string,
+  options: Pick<LoadConfigOptions, 'createIfMissing'>
+): Promise<{ config: ZodiacConfig; rootDir: string }> => {
   // Resolve relative paths (including the default) against the nearest
   // package.json ancestor — that's where users expect the config to live,
   // regardless of which subdir they ran the CLI from.
@@ -175,15 +208,7 @@ export async function loadConfig(
     )
   }
 
-  const rootDir = dirname(absolutePath)
-
-  // `init` writes the API key and URL to the project's `.env`, which a CLI run
-  // from a subdirectory would not have loaded. Variables already set win.
-  loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
-
-  const apiKey = await resolveApiKey(config, rootDir, options)
-
-  return { ...config, apiKey, rootDir }
+  return { config, rootDir: dirname(absolutePath) }
 }
 
 const resolveApiKey = async (

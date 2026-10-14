@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { ResolvedConfig } from '../config'
+import type { ProjectConfig } from '../config'
 import { resolveAbisDir } from '../config'
 import { resolveZodiacDir } from '../../paths'
 import { abiFilePath, walkContracts, writeAbi } from '../../allow/abi'
@@ -10,17 +10,28 @@ import { generateAllowTypes, writeGenerated } from '../../allow/codegen'
 
 type Status = 'ok' | 'fetched' | 'missing'
 
-export const pullContracts = async (config: ResolvedConfig) => {
+type PullContractsOptions = {
+  /**
+   * Write the typings to this file, relative to the project root, as a module
+   * exporting `AllowKit` rather than augmenting the global one.
+   */
+  module?: string
+}
+
+export const pullContracts = async (
+  config: ProjectConfig,
+  { module }: PullContractsOptions = {}
+) => {
   if (!config.contracts || Object.keys(config.contracts).length === 0) {
     console.log('No contracts defined in config, skipping.')
     return
   }
 
   const abisDir = resolveAbisDir(config)
-  const generatedFile = path.join(
-    resolveZodiacDir(config.rootDir),
-    'allow.d.ts'
-  )
+  const generatedFile =
+    module == null
+      ? path.join(resolveZodiacDir(config.rootDir), 'allow.d.ts')
+      : path.resolve(config.rootDir, module)
 
   let missing = 0
   let fetched = 0
@@ -81,7 +92,9 @@ export const pullContracts = async (config: ResolvedConfig) => {
     )
   }
 
-  const source = generateAllowTypes(abisDir, config.contracts)
+  const source = generateAllowTypes(abisDir, config.contracts, {
+    module: module != null,
+  })
   writeGenerated(generatedFile, source)
   console.log('')
   console.log(`Wrote typings to ${path.relative(process.cwd(), generatedFile)}`)

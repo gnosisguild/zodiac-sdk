@@ -365,7 +365,7 @@ Options:
 Commands:
   init                 Authorize this directory with a Zodiac org. Opens a browser to mint an API key and writes it to .env.
   pull-org             Fetch Zodiac users and accounts, generate TypeScript types
-  pull-contracts       Fetch contract ABIs, generate typed permissions kit
+  pull-contracts       Fetch contract ABIs, generate typed permissions kit. Needs no API key (--module <file> to export the types instead of augmenting the global AllowKit)
   pull                 Fetch Zodiac org and contracts ABI, generate SDK functions
   push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser, --source <url> to name where they are defined)
   help [command]       display help for command
