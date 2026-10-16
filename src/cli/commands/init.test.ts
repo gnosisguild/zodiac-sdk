@@ -54,6 +54,10 @@ const stubExchange = (handler: ExchangeStub) => {
   }) as typeof fetch
 }
 
+const ENV_HEADER = `# Written by \`zodiac init\`. Never commit this file.
+# Revoke keys at ${APP_URL}/admin/api-keys
+`
+
 const challengeFor = (verifier: string) =>
   createHash('sha256').update(verifier).digest('base64url')
 
@@ -88,8 +92,9 @@ describe('init', () => {
     expect(challengeFor(receivedExchange!.code_verifier)).toBe(codeChallenge)
 
     const envContents = readFileSync(join(tmpDir, '.env'), 'utf8')
-    expect(envContents).toContain('ZODIAC_API_KEY=zodiac_test-key-1')
-    expect(envContents).toContain(`ZODIAC_API_URL=${APP_URL}/api/v1`)
+    expect(envContents).toBe(
+      `${ENV_HEADER}ZODIAC_API_KEY=zodiac_test-key-1\nZODIAC_API_URL=${APP_URL}/api/v1\n`
+    )
 
     // First-run scaffolding: stub zodiac.config.ts dropped at rootDir.
     const configContents = readFileSync(
@@ -206,6 +211,34 @@ describe('init', () => {
     expect(envContents).toContain(`ZODIAC_API_URL=${APP_URL}/api/v1`)
     expect(envContents).not.toContain('zodiac_old')
     expect(envContents).not.toContain('stale.example')
+    expect(envContents.startsWith(ENV_HEADER)).toBe(true)
+  })
+
+  it('keeps a single, current header in .env across re-runs', async () => {
+    mkdirSync(tmpDir, { recursive: true })
+    writeFileSync(
+      join(tmpDir, '.env'),
+      '# my notes\nOTHER_VAR=foo\n' +
+        '# Written by `zodiac init`. Never commit this file.\n' +
+        '# Revoke keys at https://stale.example/admin/api-keys\n' +
+        'ZODIAC_API_KEY=zodiac_old\n',
+      'utf8'
+    )
+
+    stubExchange(() => ({ status: 200, body: { key: 'zodiac_new' } }))
+
+    const { init } = await import('./init')
+    const initPromise = init({ rootDir: tmpDir, appUrl: APP_URL })
+
+    const { callbackUrl, state } = await waitForCapturedUrl()
+    await fetch(`${callbackUrl}?code=ok&state=${state}`)
+
+    await initPromise
+
+    // Refreshed in place: user lines above it stay where they were.
+    expect(readFileSync(join(tmpDir, '.env'), 'utf8')).toBe(
+      `# my notes\nOTHER_VAR=foo\n${ENV_HEADER}ZODIAC_API_KEY=zodiac_new\nZODIAC_API_URL=${APP_URL}/api/v1\n`
+    )
   })
 
   it('sends a SHA-256 PKCE challenge in the auth URL', async () => {
