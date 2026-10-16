@@ -69,7 +69,7 @@ export const init = async (options: InitOptions = {}): Promise<string> => {
 
   const envPath = join(rootDir, '.env')
   const apiUrl = `${appUrl}/api/v1`
-  writeEnv(envPath, { ZODIAC_API_KEY: apiKey, ZODIAC_API_URL: apiUrl })
+  writeEnv(envPath, appUrl, { ZODIAC_API_KEY: apiKey, ZODIAC_API_URL: apiUrl })
 
   // So a same-run `pull` targets the org we just authorized, not the default.
   process.env.ZODIAC_API_KEY = apiKey
@@ -256,8 +256,14 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
-const writeEnv = (envPath: string, vars: Record<string, string>): void => {
+const writeEnv = (
+  envPath: string,
+  appUrl: string,
+  vars: Record<string, string>
+): void => {
   let contents = existsSync(envPath) ? readFileSync(envPath, 'utf8') : ''
+
+  contents = upsertEnvHeader(contents, appUrl)
 
   for (const [key, value] of Object.entries(vars)) {
     contents = upsertEnvLine(contents, key, value)
@@ -265,6 +271,20 @@ const writeEnv = (envPath: string, vars: Record<string, string>): void => {
 
   writeFileSync(envPath, contents, 'utf8')
 }
+
+// Point at the app the key was minted in, so `--app-url` users revoke it there.
+const envHeader = (appUrl: string) =>
+  `# Written by \`zodiac init\`. Never commit this file.\n` +
+  `# Revoke keys at ${appUrl}/admin/api-keys\n`
+
+const ENV_HEADER_PATTERN =
+  /^# Written by `zodiac init`\. Never commit this file\.\r?\n# Revoke keys at .*(?:\r?\n|$)/m
+
+// Re-runs refresh the header where it already is rather than stacking another.
+const upsertEnvHeader = (contents: string, appUrl: string): string =>
+  ENV_HEADER_PATTERN.test(contents)
+    ? contents.replace(ENV_HEADER_PATTERN, () => envHeader(appUrl))
+    : `${envHeader(appUrl)}${contents}`
 
 const upsertEnvLine = (
   contents: string,
