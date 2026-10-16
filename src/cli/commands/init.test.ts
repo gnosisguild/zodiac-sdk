@@ -55,7 +55,7 @@ const stubExchange = (handler: ExchangeStub) => {
 }
 
 const ENV_HEADER = `# Written by \`zodiac init\`. Never commit this file.
-# Revoke keys at ${APP_URL}/admin/api-keys
+# Revoke keys at ${APP_URL}/profile/api-keys
 `
 
 const challengeFor = (verifier: string) =>

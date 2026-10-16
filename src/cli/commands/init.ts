@@ -275,7 +275,7 @@ const writeEnv = (
 // Point at the app the key was minted in, so `--app-url` users revoke it there.
 const envHeader = (appUrl: string) =>
   `# Written by \`zodiac init\`. Never commit this file.\n` +
-  `# Revoke keys at ${appUrl}/admin/api-keys\n`
+  `# Revoke keys at ${appUrl}/profile/api-keys\n`
 
 const ENV_HEADER_PATTERN =
   /^# Written by `zodiac init`\. Never commit this file\.\r?\n# Revoke keys at .*(?:\r?\n|$)/m

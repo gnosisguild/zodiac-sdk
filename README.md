@@ -16,7 +16,7 @@ npm install @zodiaceco/sdk
 zodiac init
 ```
 
-Opens a browser tab so you can sign in, pick the org you want to use, and approve a new API key. The key (and matching `ZODIAC_API_URL`) are written to a `.env` file in your project root — labeled after the directory so you can find and revoke it later from [app.zodiac.eco/admin/api-keys](https://app.zodiac.eco/admin/api-keys).
+Opens a browser tab so you can sign in, pick the org you want to use, and approve a new API key. The key (and matching `ZODIAC_API_URL`) are written to a `.env` file in your project root — labeled after the directory so you can find and revoke it later from [app.zodiac.eco/profile/api-keys](https://app.zodiac.eco/profile/api-keys).
 
 **IMPORTANT:** Make sure to add `.env` to your `.gitignore`.
 
