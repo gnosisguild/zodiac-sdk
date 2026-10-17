@@ -25,6 +25,13 @@ export const pullContracts = async (
 ) => {
   if (!config.contracts || Object.keys(config.contracts).length === 0) {
     console.log('No contracts defined in config, skipping.')
+    // Contracts pulled before are gone from the config, so from `allow` too.
+    if (module == null) {
+      writeContractsManifest(config.rootDir, {
+        abisDir: path.relative(config.rootDir, resolveAbisDir(config)) || '.',
+        contracts: {},
+      })
+    }
     return
   }
 

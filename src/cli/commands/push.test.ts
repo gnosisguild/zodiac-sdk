@@ -159,6 +159,23 @@ describe('pushEntrypoint', () => {
     )
   })
 
+  it("points the entrypoint at the config's project", async () => {
+    mockPush.mockResolvedValue([])
+
+    const { entrypoint, config } = createProject()
+    writeFileSync(
+      entrypoint,
+      'export const root = process.env.ZODIAC_PROJECT_ROOT\n'
+    )
+
+    await pushEntrypoint({ entrypoint, config, openInBrowser: false })
+
+    expect(mockPush).toHaveBeenCalledWith(
+      { root: join(config, '..') },
+      expect.anything()
+    )
+  })
+
   it('prints what it would push without an API key on a dry run', async () => {
     mockSpecify.mockReturnValue([{ label: 'Ops', specification: [] }])
 

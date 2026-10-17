@@ -41,6 +41,9 @@ export const pushEntrypoint = async ({
   const { rootDir } = await loadProjectConfig(configPath)
   // Before the entrypoint, which may read it as it loads.
   loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
+  // So the entrypoint's `allow` and `constellation()` read the `.zodiac/` of
+  // this config, also when `--config` names one outside the working directory.
+  process.env.ZODIAC_PROJECT_ROOT = rootDir
   const entrypointPath =
     entrypoint == null
       ? resolve(rootDir, DEFAULT_ENTRYPOINT)

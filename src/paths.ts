@@ -30,8 +30,14 @@ export const CONFIG_EXTENSIONS = [
 
 const CONFIG_FILENAMES = CONFIG_EXTENSIONS.map((ext) => `zodiac.config${ext}`)
 
-/** The nearest directory up from `cwd` holding a `zodiac.config.*` file. */
+/**
+ * The project's root: `ZODIAC_PROJECT_ROOT`, which `zodiac push` sets to the
+ * directory of the config it loaded, or else the nearest directory up from
+ * `cwd` holding a `zodiac.config.*` file.
+ */
 export function findProjectRoot(): string {
+  if (process.env.ZODIAC_PROJECT_ROOT) return process.env.ZODIAC_PROJECT_ROOT
+
   let dir = process.cwd()
   while (dir !== dirname(dir)) {
     if (CONFIG_FILENAMES.some((name) => existsSync(join(dir, name)))) return dir

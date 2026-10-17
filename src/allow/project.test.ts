@@ -43,6 +43,7 @@ beforeEach(() => {
 
 afterEach(() => {
   process.chdir(originalCwd)
+  delete process.env.ZODIAC_PROJECT_ROOT
 })
 
 const pull = () =>
@@ -57,6 +58,17 @@ describe('pullContracts', () => {
         readFileSync(join(rootDir, '.zodiac', 'contracts.json'), 'utf8')
       )
     ).toEqual({ abisDir: 'abis', contracts: { eth: { weth: WETH } } })
+  })
+
+  it('records no contracts once the config lists none', async () => {
+    await pull()
+    await pullContracts({ rootDir, contracts: {} })
+
+    expect(
+      JSON.parse(
+        readFileSync(join(rootDir, '.zodiac', 'contracts.json'), 'utf8')
+      )
+    ).toEqual({ abisDir: 'abis', contracts: {} })
   })
 
   it('records nothing when writing the typings to a module', async () => {
@@ -97,6 +109,16 @@ describe('allow', () => {
     )
     mkdirSync(join(rootDir, 'constellation'))
     process.chdir(join(rootDir, 'constellation'))
+
+    const allow = await importAllow()
+
+    expect(allow.eth.weth).toBeDefined()
+  })
+
+  it('builds the kit for the project ZODIAC_PROJECT_ROOT names', async () => {
+    await pull()
+    process.chdir(tmpdir())
+    process.env.ZODIAC_PROJECT_ROOT = rootDir
 
     const allow = await importAllow()
 

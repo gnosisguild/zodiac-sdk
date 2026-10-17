@@ -13,7 +13,9 @@
         "roles": {
           "wrapping": {
             "key": "wrapping",
-            "members": ["0x2222222222222222222222222222222222222222"],
+            "members": [
+              "0x2222222222222222222222222222222222222222"
+            ],
             "permissions": [
               {
                 "label": "Wrap and unwrap ETH",
@@ -54,8 +56,12 @@
         "type": "SAFE",
         "nonce": "0",
         "threshold": 1,
-        "owners": ["0x1111111111111111111111111111111111111111"],
-        "modules": ["$roles"],
+        "owners": [
+          "0x1111111111111111111111111111111111111111"
+        ],
+        "modules": [
+          "$roles"
+        ],
         "label": "Fixture Safe",
         "chain": 1,
         "ref": "safe"
