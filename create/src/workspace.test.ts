@@ -40,4 +40,14 @@ describe('setWorkspace', () => {
       readFileSync(join(projectDir, 'constellation', 'index.ts'), 'utf8')
     ).toContain('workspace: "GG \\"Treasury\\"",')
   })
+
+  it('keeps a name that looks like a replacement pattern', () => {
+    const projectDir = scaffoldProject()
+
+    setWorkspace(projectDir, "Ops $& $'")
+
+    expect(
+      readFileSync(join(projectDir, 'constellation', 'index.ts'), 'utf8')
+    ).toContain(`workspace: "Ops $& $'",`)
+  })
 })

@@ -27,9 +27,10 @@ export const setWorkspace = (projectDir: string, workspace: string) => {
 
   writeFileSync(
     path,
+    // A callback, so `$&` and the like in the name stay as they are.
     source.replace(
       `workspace: ${JSON.stringify(DEFAULT_WORKSPACE)}`,
-      `workspace: ${JSON.stringify(workspace)}`
+      () => `workspace: ${JSON.stringify(workspace)}`
     )
   )
 }
