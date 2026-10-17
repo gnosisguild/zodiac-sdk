@@ -174,6 +174,8 @@ describe('pushEntrypoint', () => {
       { root: join(config, '..') },
       expect.anything()
     )
+    // Only while pushing: a script may go on to another project.
+    expect(process.env.ZODIAC_PROJECT_ROOT).toBeUndefined()
   })
 
   it("builds the entrypoint's allow kit from the config, before any pull", async () => {

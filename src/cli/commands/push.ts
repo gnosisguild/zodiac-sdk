@@ -43,12 +43,44 @@ export const pushEntrypoint = async ({
   const { rootDir } = projectConfig
   // Before the entrypoint, which may read it as it loads.
   loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
-  // So the entrypoint's `allow` and `constellation()` read the `.zodiac/` of
-  // this config, also when `--config` names one outside the working directory.
-  process.env.ZODIAC_PROJECT_ROOT = rootDir
   // From the config as it is now, so `allow` knows every contract it lists,
   // pulled since or not: a fresh clone has no `.zodiac/`, but has the ABIs.
   recordContracts(projectConfig)
+
+  // So the entrypoint's `allow` and `constellation()` read the `.zodiac/` of
+  // this config, also when `--config` names one outside the working directory.
+  // Only while pushing: a script may go on to another project.
+  const { ZODIAC_PROJECT_ROOT } = process.env
+  process.env.ZODIAC_PROJECT_ROOT = rootDir
+
+  try {
+    await pushProject(rootDir, {
+      entrypoint,
+      openInBrowser,
+      config: configPath,
+      source,
+      dryRun,
+    })
+  } finally {
+    if (ZODIAC_PROJECT_ROOT === undefined) {
+      delete process.env.ZODIAC_PROJECT_ROOT
+    } else {
+      process.env.ZODIAC_PROJECT_ROOT = ZODIAC_PROJECT_ROOT
+    }
+  }
+}
+
+const pushProject = async (
+  rootDir: string,
+  {
+    entrypoint,
+    openInBrowser,
+    config: configPath,
+    source,
+    dryRun,
+  }: Required<Pick<PushEntrypointOptions, 'openInBrowser' | 'dryRun'>> &
+    PushEntrypointOptions
+) => {
   const entrypointPath =
     entrypoint == null
       ? resolve(rootDir, DEFAULT_ENTRYPOINT)
