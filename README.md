@@ -8,7 +8,7 @@ Programmatically manage [Zodiac](https://www.zodiac.eco) account constellations.
 npm create @zodiaceco@latest my-org
 ```
 
-This sets up a constellation project in `my-org` from the [template](./create/templates/constellation): an example on Ethereum to start from, its dependencies installed, and, if you like, connected to your Zodiac org. `pnpm create @zodiaceco`, `bunx @zodiaceco/create` and `zodiac create` work the same. See [`@zodiaceco/create`](./create) for its options.
+This sets up a constellation project in `my-org` from the [template](./create/templates/constellation): an example on Ethereum to start from, its dependencies installed, and, if you like, connected to your Zodiac org. `pnpm dlx @zodiaceco/create`, `bunx @zodiaceco/create` and `zodiac create` work the same. See [`@zodiaceco/create`](./create) for its options.
 
 To add the SDK to a project you already have, read on.
 

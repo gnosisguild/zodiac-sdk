@@ -6,7 +6,7 @@ Starts a [Zodiac](https://zodiac.eco) constellation project: your organisation's
 npm create @zodiaceco@latest my-org
 ```
 
-`pnpm create @zodiaceco`, `yarn create @zodiaceco` and `bunx @zodiaceco/create` work the same, as does `zodiac create` from [`@zodiaceco/sdk`](https://www.npmjs.com/package/@zodiaceco/sdk).
+`pnpm dlx @zodiaceco/create` and `bunx @zodiaceco/create` work the same, installing with pnpm or Bun, as does `zodiac create` from [`@zodiaceco/sdk`](https://www.npmjs.com/package/@zodiaceco/sdk).
 
 It copies the constellation template into `my-org`, installs its dependencies with the package manager you ran it with, and offers to connect the project to Zodiac: that opens your browser to sign in, mints an API key for the project and pulls your org's accounts. Last, it commits the project to a new git repository.
 
