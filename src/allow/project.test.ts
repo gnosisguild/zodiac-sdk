@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -80,6 +81,20 @@ describe('allow', () => {
 
   it('finds the project from a subdirectory', async () => {
     await pull()
+    mkdirSync(join(rootDir, 'constellation'))
+    process.chdir(join(rootDir, 'constellation'))
+
+    const allow = await importAllow()
+
+    expect(allow.eth.weth).toBeDefined()
+  })
+
+  it('finds a project configured in zodiac.config.mts from a subdirectory', async () => {
+    await pull()
+    renameSync(
+      join(rootDir, 'zodiac.config.ts'),
+      join(rootDir, 'zodiac.config.mts')
+    )
     mkdirSync(join(rootDir, 'constellation'))
     process.chdir(join(rootDir, 'constellation'))
 

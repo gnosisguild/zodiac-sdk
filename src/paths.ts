@@ -15,12 +15,20 @@ export function resolveZodiacDir(rootDir?: string): string {
   return join(rootDir ?? findProjectRoot(), '.zodiac')
 }
 
-const CONFIG_FILENAMES = [
-  'zodiac.config.ts',
-  'zodiac.config.js',
-  'zodiac.config.mjs',
-  'zodiac.config.cjs',
-]
+/**
+ * Extensions of `zodiac.config`, in the order they are probed when no
+ * `--config` path is given. Mirrors what vite / vitest / tailwind accept.
+ */
+export const CONFIG_EXTENSIONS = [
+  '.ts',
+  '.mts',
+  '.cts',
+  '.js',
+  '.mjs',
+  '.cjs',
+] as const
+
+const CONFIG_FILENAMES = CONFIG_EXTENSIONS.map((ext) => `zodiac.config${ext}`)
 
 /** The nearest directory up from `cwd` holding a `zodiac.config.*` file. */
 export function findProjectRoot(): string {

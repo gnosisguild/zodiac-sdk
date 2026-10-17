@@ -137,6 +137,28 @@ describe('pushEntrypoint', () => {
     expect(mockPush).toHaveBeenCalledWith({ ops: 'ops' }, expect.anything())
   })
 
+  it("loads the project's .env before the entrypoint", async () => {
+    mockPush.mockResolvedValue([])
+
+    const { entrypoint, config } = createProject()
+    writeFileSync(join(config, '..', '.env'), 'FIXTURE_TREASURY=0x1234\n')
+    writeFileSync(
+      entrypoint,
+      'export const treasury = process.env.FIXTURE_TREASURY\n'
+    )
+
+    try {
+      await pushEntrypoint({ entrypoint, config, openInBrowser: false })
+    } finally {
+      delete process.env.FIXTURE_TREASURY
+    }
+
+    expect(mockPush).toHaveBeenCalledWith(
+      { treasury: '0x1234' },
+      expect.anything()
+    )
+  })
+
   it('prints what it would push without an API key on a dry run', async () => {
     mockSpecify.mockReturnValue([{ label: 'Ops', specification: [] }])
 

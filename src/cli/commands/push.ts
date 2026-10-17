@@ -1,4 +1,5 @@
 import { dirname, resolve } from 'node:path'
+import { config as loadDotenv } from 'dotenv'
 import open from 'open'
 import { ConstellationRejectedError, push, specify } from '../../push'
 import { loadConfig, loadProjectConfig } from '../config'
@@ -38,6 +39,8 @@ export const pushEntrypoint = async ({
   dryRun = false,
 }: PushEntrypointOptions = {}) => {
   const { rootDir } = await loadProjectConfig(configPath)
+  // Before the entrypoint, which may read it as it loads.
+  loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
   const entrypointPath =
     entrypoint == null
       ? resolve(rootDir, DEFAULT_ENTRYPOINT)

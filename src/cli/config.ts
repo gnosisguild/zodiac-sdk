@@ -1,6 +1,7 @@
 import { config as loadDotenv } from 'dotenv'
 import { existsSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'path'
+import { CONFIG_EXTENSIONS } from '../paths'
 import { loadModule } from './loadModule'
 import { findProjectRoot } from './projectRoot'
 
@@ -73,19 +74,6 @@ export const defineConfig = <const T extends DefineConfigInput>(
 ): T => config
 
 const CONFIG_BASENAME = 'zodiac.config'
-
-/**
- * Extensions probed (in priority order) when the user doesn't pass an
- * explicit `--config` path. Mirrors what vite / vitest / tailwind accept.
- */
-const CONFIG_EXTENSIONS = [
-  '.ts',
-  '.mts',
-  '.cts',
-  '.js',
-  '.mjs',
-  '.cjs',
-] as const
 
 const DEFAULT_CONFIG_PATH = `${CONFIG_BASENAME}.ts`
 
