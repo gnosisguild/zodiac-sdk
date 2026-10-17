@@ -161,6 +161,10 @@ describe('init', () => {
 
     const { init } = await import('./init')
     const initPromise = init({ rootDir: tmpDir, appUrl: APP_URL })
+    // Handled from the start: the rejection can land while the callback's own
+    // response is still on its way, before the expectation below is reached,
+    // and a rejection nothing handles yet fails the test however it ends.
+    initPromise.catch(() => {})
 
     const { callbackUrl, state } = await waitForCapturedUrl()
     await fetch(`${callbackUrl}?code=stale&state=${state}`)
@@ -177,6 +181,7 @@ describe('init', () => {
 
     const { init } = await import('./init')
     const initPromise = init({ rootDir: tmpDir, appUrl: APP_URL })
+    initPromise.catch(() => {})
 
     const { callbackUrl, state } = await waitForCapturedUrl()
     await fetch(`${callbackUrl}?code=ok&state=${state}`)
