@@ -2,4 +2,4 @@ package.json
 dist
 CHANGELOG.md
 # Compared byte for byte with what `zodiac push --dry-run` prints
-test/fixtures/project.specification.json
+templates/constellation.specification.json

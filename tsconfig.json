@@ -65,6 +65,6 @@
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */
   },
-  // Imports the SDK as a project does, from a packed release.
-  "exclude": ["node_modules", "dist", "test/fixtures"]
+  // Templates import the SDK as a project does, from a packed release.
+  "exclude": ["node_modules", "dist", "templates"]
 }

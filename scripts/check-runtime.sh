@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Runs the CLI on the fixture project under one runtime, from a packed SDK the
-# way a project installs it: pull the contracts, type-check, and compare what a
-# push would send with the snapshot.
+# Runs the CLI on a project made from the constellation template, under one
+# runtime and from a packed SDK the way a project installs it: pull the
+# contracts, type-check, and compare what a push would send with the snapshot.
 #
 #   scripts/check-runtime.sh <node|bun> <packed .tgz> [--update]
 #
@@ -13,12 +13,14 @@ tarball=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 update=${3:-}
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-snapshot=$root/test/fixtures/project.specification.json
+snapshot=$root/templates/constellation.specification.json
 
 project=$(mktemp -d)
 trap 'rm -rf "$project"' EXIT
-cp -R "$root/test/fixtures/project/." "$project"
+cp -R "$root/templates/constellation/." "$project"
 cd "$project"
+# npm leaves a package's `.gitignore` out, so the template keeps it as this.
+mv _gitignore .gitignore
 
 case $runtime in
   node)
