@@ -125,6 +125,29 @@ describe('allow', () => {
     expect(allow.eth.weth).toBeDefined()
   })
 
+  it('builds the kit of whichever project it is used in', async () => {
+    const allow = await importAllow()
+
+    await pull()
+    process.env.ZODIAC_PROJECT_ROOT = rootDir
+    expect(allow.eth.weth.deposit().targetAddress).toBe(WETH.toLowerCase())
+
+    const otherRoot = mkdtempSync(join(tmpdir(), 'zodiac-allow-test-'))
+    const otherWeth = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1'
+    mkdirSync(join(otherRoot, 'abis', 'eth'), { recursive: true })
+    writeFileSync(
+      join(otherRoot, 'abis', 'eth', 'weth.json'),
+      JSON.stringify(DEPOSIT_ABI)
+    )
+    await pullContracts({
+      rootDir: otherRoot,
+      contracts: { eth: { weth: otherWeth } },
+    })
+    process.env.ZODIAC_PROJECT_ROOT = otherRoot
+
+    expect(allow.eth.weth.deposit().targetAddress).toBe(otherWeth)
+  })
+
   it('can be imported before the contracts are pulled', async () => {
     process.chdir(rootDir)
 

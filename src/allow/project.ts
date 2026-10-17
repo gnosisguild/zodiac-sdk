@@ -38,7 +38,11 @@ export const recordContracts = (config: {
     contracts: config.contracts ?? {},
   })
 
-const loadKit = (): Record<string, any> => {
+// By project and when its contracts were recorded: a program pushing several
+// projects, or recording new contracts, gets each kit as it is now.
+const kits = new Map<string, { recordedAt: number; kit: Record<string, any> }>()
+
+const getKit = (): Record<string, any> => {
   const rootDir = findProjectRoot()
   const file = path.join(resolveZodiacDir(rootDir), CONTRACTS_FILE)
 
@@ -48,15 +52,18 @@ const loadKit = (): Record<string, any> => {
     )
   }
 
+  const recordedAt = fs.statSync(file).mtimeMs
+  const cached = kits.get(file)
+  if (cached?.recordedAt === recordedAt) return cached.kit
+
   const { abisDir, contracts }: ContractsManifest = JSON.parse(
     fs.readFileSync(file, 'utf8')
   )
+  const kit = buildAllowKit(path.resolve(rootDir, abisDir), contracts)
 
-  return buildAllowKit(path.resolve(rootDir, abisDir), contracts)
+  kits.set(file, { recordedAt, kit })
+  return kit
 }
-
-let kit: Record<string, any> | undefined
-const getKit = () => (kit ??= loadKit())
 
 /**
  * The project's permission kit: `allow.<chain>.<contract>.<function>(...)` for
