@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.8.0](https://github.com/zodiaceco/zodiac-sdk/compare/v2.7.0...v2.8.0) (2026-10-17)
+
+
+### Features
+
+* **cli:** head the .env written by init with a do-not-commit note ([#81](https://github.com/zodiaceco/zodiac-sdk/issues/81)) ([6ff8e77](https://github.com/zodiaceco/zodiac-sdk/commit/6ff8e773e00c224b20f41b30203bd0fea4cc6599))
+* **cli:** point the .env revoke link at the profile's API keys page ([#82](https://github.com/zodiaceco/zodiac-sdk/issues/82)) ([4b29f26](https://github.com/zodiaceco/zodiac-sdk/commit/4b29f26818e1799df2040c14eb5d0c52df18c58c))
+
 ## [2.7.0](https://github.com/gnosisguild/zodiac-sdk/compare/v2.6.0...v2.7.0) (2026-10-14)
 
 
