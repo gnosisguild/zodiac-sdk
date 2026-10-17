@@ -7,6 +7,7 @@ import { abiFilePath, walkContracts, writeAbi } from '../../allow/abi'
 import { fetchAbi } from '../../allow/fetch'
 import { chainIdFor } from '../../allow/networks'
 import { generateAllowTypes, writeGenerated } from '../../allow/codegen'
+import { writeContractsManifest } from '../../allow/project'
 
 type Status = 'ok' | 'fetched' | 'missing'
 
@@ -98,6 +99,15 @@ export const pullContracts = async (
   writeGenerated(generatedFile, source)
   console.log('')
   console.log(`Wrote typings to ${path.relative(process.cwd(), generatedFile)}`)
+
+  // What `allow` from `@zodiaceco/sdk` is built from. A module of typings is
+  // for code that builds its own kit.
+  if (module == null) {
+    writeContractsManifest(config.rootDir, {
+      abisDir: path.relative(config.rootDir, abisDir) || '.',
+      contracts: config.contracts,
+    })
+  }
 
   if (missing > 0) process.exit(1)
 }

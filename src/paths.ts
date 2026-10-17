@@ -22,7 +22,8 @@ const CONFIG_FILENAMES = [
   'zodiac.config.cjs',
 ]
 
-function findProjectRoot(): string {
+/** The nearest directory up from `cwd` holding a `zodiac.config.*` file. */
+export function findProjectRoot(): string {
   let dir = process.cwd()
   while (dir !== dirname(dir)) {
     if (CONFIG_FILENAMES.some((name) => existsSync(join(dir, name)))) return dir

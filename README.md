@@ -195,6 +195,22 @@ References are resolved by label at `push()` time, so both sides of the cycle mu
 const aliceAddress = eth.user['Alice Sample']
 ```
 
+### The `allow` kit
+
+`allow` holds a permission builder for every contract in `zodiac.config.ts`,
+by chain prefix and the name you gave it, typed after each contract's ABI:
+
+```ts
+import { allow, c } from '@zodiaceco/sdk'
+
+allow.eth.weth.deposit({ send: true })
+allow.eth.weth.withdraw(c.lte(10n ** 18n))
+```
+
+`zodiac pull-contracts` fetches the ABIs and records what the kit is built
+from in `.zodiac/`, so re-run it after changing the contracts. The kit is
+built on first use for the project the working directory is in.
+
 ### Describing what a role may do
 
 A Roles mod carries roles, and every role lists `permissions` — entries that
@@ -204,9 +220,8 @@ deployed, so a stored revision always goes through the current compilers
 instead of replaying a copy made when it was pushed.
 
 ```ts
+import { allow } from '@zodiaceco/sdk'
 import { swap, transfer, custom, defikit } from '@zodiaceco/sdk/actions'
-// `allow` is your project's generated permission kit — a global in template
-// projects, created by `zodiac pull-contracts`.
 
 const treasuryRoles = eth.roles['GG Treasury Roles']({
   nonce: 0n,
