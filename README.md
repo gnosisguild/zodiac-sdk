@@ -51,7 +51,7 @@ import { defineConfig } from '@zodiaceco/sdk/cli/config'
 
 export default defineConfig({
   contracts: {
-    mainnet: {
+    eth: {
       dai: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
     },
   },
@@ -82,7 +82,7 @@ your code  ◀──pull──  Zodiac OS  ◀───────────�
 
 **Deploying happens in the app.** The review page diffs the revision against on-chain state and derives addresses for new nodes from the personal Safe of whoever triggers the deployment — so until a deployment settles them, two people looking at the same constellation see different addresses for new nodes. Deploying registers the accounts in Zodiac OS and executes the transactions. A constellation moves Draft → Pending → Deployed, and the next push starts a new revision back at Draft.
 
-**Then pull again.** Once the new accounts have been seen on chain, the next `pull` includes them, keyed by label per chain — from that point on, reference them (`eth.safe['New Safe']`) instead of re-declaring them with a `nonce`. `bun push` runs `pull-org` first via the `prepush` hook, so this mostly takes care of itself. The case to avoid is pushing from a stale checkout where an already-deployed node is still declared by `nonce`: the original deployer would re-derive the same address, but anyone else deploying that revision would create a duplicate account.
+**Then pull again.** Once the new accounts have been seen on chain, the next `pull` includes them, keyed by label per chain — from that point on, reference them (`eth.safe['New Safe']`) instead of re-declaring them with a `nonce`. A project's `push` script runs `zodiac pull` first (`zodiac pull && zodiac push`), so this mostly takes care of itself. The case to avoid is pushing from a stale checkout where an already-deployed node is still declared by `nonce`: the original deployer would re-derive the same address, but anyone else deploying that revision would create a duplicate account.
 
 ## Constellation API
 
@@ -124,7 +124,7 @@ const ggDaoDelay = eth.delay['GG DAO Timelock']
 const ggDaoOverridden = eth.safe['GG DAO']({ threshold: 5 })
 ```
 
-> `bun push` runs `pull-org` first via the `prepush` hook, so re-pushing always sees the freshest existing-account values from your org.
+> A project's `push` script runs `zodiac pull` first, so re-pushing always sees the freshest existing-account values from your org.
 
 ### Creating new accounts
 
@@ -335,8 +335,8 @@ in the Zodiac app for the rest of your org:
 - **`vault: true`** on a Safe lists it under **Vaults**.
 - **`policy`** on a role lists it under **Policies**, labelled as given, so
   everyone in your org can see what it permits right in the app. A
-  `description` is optional. In a template project, export both from the
-  role's folder:
+  `description` is optional. In a project started with
+  `npm create @zodiaceco`, export both from the role's folder:
 
   ```ts
   // constellation/roles/treasury_ops/index.ts
