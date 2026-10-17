@@ -1,0 +1,4 @@
+/node_modules
+/.zodiac
+package-lock.json
+bun.lock

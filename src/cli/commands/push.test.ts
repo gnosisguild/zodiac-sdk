@@ -7,10 +7,12 @@ import { ApiRequestError } from '../../api'
 import { ConstellationRejectedError } from '../../push'
 
 const mockPush = mock()
+const mockSpecify = mock()
 
 mock.module('../../push', () => ({
   ConstellationRejectedError,
   push: mockPush,
+  specify: mockSpecify,
 }))
 
 const { pushEntrypoint } = await import('./push')
@@ -34,6 +36,7 @@ describe('pushEntrypoint', () => {
   afterEach(() => {
     process.exitCode = 0
     mockPush.mockReset()
+    mockSpecify.mockReset()
   })
 
   it('prints what Zodiac refused and fails without a stack trace', async () => {
@@ -114,6 +117,49 @@ describe('pushEntrypoint', () => {
       { ops: 'from the root' },
       expect.anything()
     )
+  })
+
+  it('loads an entrypoint that imports a directory', async () => {
+    mockPush.mockResolvedValue([])
+
+    const { entrypoint, config } = createProject()
+    const root = join(config, '..')
+
+    mkdirSync(join(root, 'roles'))
+    writeFileSync(
+      join(root, 'roles', 'index.ts'),
+      'export const ops: string = "ops"\n'
+    )
+    writeFileSync(entrypoint, 'export { ops } from "./roles"\n')
+
+    await pushEntrypoint({ entrypoint, config, openInBrowser: false })
+
+    expect(mockPush).toHaveBeenCalledWith({ ops: 'ops' }, expect.anything())
+  })
+
+  it('prints what it would push without an API key on a dry run', async () => {
+    mockSpecify.mockReturnValue([{ label: 'Ops', specification: [] }])
+
+    const { entrypoint, config } = createProject()
+    writeFileSync(config, 'export default {}\n')
+    writeFileSync(entrypoint, 'export const ops = "ops"\n')
+
+    const { ZODIAC_API_KEY } = process.env
+    delete process.env.ZODIAC_API_KEY
+    const log = spyOn(console, 'log').mockImplementation(() => {})
+
+    try {
+      await pushEntrypoint({ entrypoint, config, dryRun: true })
+
+      expect(mockSpecify).toHaveBeenCalledWith({ ops: 'ops' })
+      expect(log).toHaveBeenCalledWith(
+        JSON.stringify([{ label: 'Ops', specification: [] }], null, 2)
+      )
+      expect(mockPush).not.toHaveBeenCalled()
+    } finally {
+      log.mockRestore()
+      if (ZODIAC_API_KEY != null) process.env.ZODIAC_API_KEY = ZODIAC_API_KEY
+    }
   })
 
   it('pushes the repository the entrypoint is checked out from as its source', async () => {

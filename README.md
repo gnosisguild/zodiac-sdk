@@ -382,15 +382,18 @@ Commands:
   pull-org             Fetch Zodiac users and accounts, generate TypeScript types
   pull-contracts       Fetch contract ABIs, generate typed permissions kit. Needs no API key (--module <file> to export the types instead of augmenting the global AllowKit)
   pull                 Fetch Zodiac org and contracts ABI, generate SDK functions
-  push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser, --source <url> to name where they are defined)
+  push [entrypoint]    Push the nodes an entrypoint exports and open them for review (--no-open to skip the browser, --source <url> to name where they are defined, --dry-run to print what would be pushed)
   help [command]       display help for command
 ```
 
 `zodiac push` imports the entrypoint (`constellation/index.ts` by default),
 pushes every named export as a node, and prints where each constellation can be
 reviewed. When Zodiac refuses a constellation, it prints what was refused and
-exits with code 1. A project whose entrypoint relies on globals it sets up
-itself runs that setup first and then calls the same command:
+exits with code 1. `--dry-run` prints the specification of each constellation
+instead of pushing it, and needs no API key.
+
+A project whose entrypoint relies on globals it sets up itself runs that setup
+first and then calls the same command:
 
 ```ts
 import './globals'
@@ -398,3 +401,7 @@ import { pushEntrypoint } from '@zodiaceco/sdk/cli/push'
 
 await pushEntrypoint({ entrypoint: process.argv[2] })
 ```
+
+The CLI runs on Node.js 22 or later and on Bun. It loads `zodiac.config.ts`
+and the entrypoint itself, so TypeScript and extensionless imports such as
+`./roles` work under either, with nothing else to install.

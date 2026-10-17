@@ -1,8 +1,8 @@
 import { dirname, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import open from 'open'
-import { ConstellationRejectedError, push } from '../../push'
-import { loadConfig } from '../config'
+import { ConstellationRejectedError, push, specify } from '../../push'
+import { loadConfig, loadProjectConfig } from '../config'
+import { loadModule } from '../loadModule'
 import { findSource } from '../source'
 
 const DEFAULT_ENTRYPOINT = 'constellation/index.ts'
@@ -18,6 +18,8 @@ type PushEntrypointOptions = {
   /** Where the constellations are defined. @default the repository the
    * entrypoint is checked out from, see {@link findSource} */
   source?: string
+  /** Print what would be pushed instead of pushing it, without an API key. */
+  dryRun?: boolean
 }
 
 /**
@@ -33,15 +35,14 @@ export const pushEntrypoint = async ({
   openInBrowser = true,
   config: configPath,
   source,
+  dryRun = false,
 }: PushEntrypointOptions = {}) => {
-  const { apiKey, rootDir } = await loadConfig(configPath)
+  const { rootDir } = await loadProjectConfig(configPath)
   const entrypointPath =
     entrypoint == null
       ? resolve(rootDir, DEFAULT_ENTRYPOINT)
       : resolve(process.cwd(), entrypoint)
-  const { default: defaultExport, ...nodes } = await import(
-    pathToFileURL(entrypointPath).href
-  )
+  const { default: defaultExport, ...nodes } = await loadModule(entrypointPath)
 
   if (defaultExport !== undefined) {
     console.warn(
@@ -49,6 +50,13 @@ export const pushEntrypoint = async ({
         `Use named exports — each export becomes a ref in the pushed spec.`
     )
   }
+
+  if (dryRun) {
+    console.log(JSON.stringify(specify(nodes), null, 2))
+    return
+  }
+
+  const { apiKey } = await loadConfig(configPath)
 
   try {
     const results = await push(nodes, {

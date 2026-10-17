@@ -1,7 +1,7 @@
 import { config as loadDotenv } from 'dotenv'
 import { existsSync, writeFileSync } from 'node:fs'
-import { pathToFileURL } from 'url'
 import { dirname, resolve } from 'path'
+import { loadModule } from './loadModule'
 import { findProjectRoot } from './projectRoot'
 
 export type Contracts = {
@@ -191,15 +191,12 @@ const readConfig = async (
     console.log(`✅ Created ${absolutePath}`)
   }
 
-  let mod: Record<string, unknown>
-  try {
-    mod = await import(pathToFileURL(absolutePath).href)
-  } catch (error: any) {
-    if (error?.code === 'ERR_MODULE_NOT_FOUND' || error?.code === 'ENOENT') {
-      throw new Error(`Config file not found: ${absolutePath}`)
-    }
-    throw error
+  // Checked up front: each runtime reports a missing module differently.
+  if (!existsSync(absolutePath)) {
+    throw new Error(`Config file not found: ${absolutePath}`)
   }
+
+  const mod = await loadModule(absolutePath)
 
   const config = (mod.default ?? mod.config) as ZodiacConfig | undefined
   if (!config) {

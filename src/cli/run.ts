@@ -103,13 +103,17 @@ export const run = async (argv: string[] = process.argv) => {
     )
     .option('--no-open', 'do not open the review pages in a browser')
     .option(
+      '--dry-run',
+      'print what would be pushed instead of pushing it (needs no API key)'
+    )
+    .option(
       '--source <url>',
       'where the constellations are defined (default: ZODIAC_SOURCE, or the git repository the entrypoint is checked out from)'
     )
     .action(
       async (
         entrypoint: string | undefined,
-        opts: { open: boolean; source?: string },
+        opts: { open: boolean; source?: string; dryRun?: boolean },
         cmd
       ) => {
         await pushEntrypoint({
@@ -117,6 +121,7 @@ export const run = async (argv: string[] = process.argv) => {
           openInBrowser: opts.open,
           config: cmd.optsWithGlobals().config,
           source: opts.source,
+          dryRun: opts.dryRun,
         })
       }
     )
