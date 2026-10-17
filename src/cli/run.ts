@@ -133,8 +133,10 @@ export const run = async (argv: string[] = process.argv) => {
       'Start a constellation project, like `npm create @zodiaceco` (`zodiac create --help` for its options)'
     )
     .argument('[directory]', 'where the project goes')
-    // Everything after `create` is for `@zodiaceco/create`, `--help` included.
+    // Everything after `create` is for `@zodiaceco/create`, `--help` included:
+    // the values of its options too, which commander counts as arguments.
     .allowUnknownOption()
+    .allowExcessArguments()
     .helpOption(false)
     .action(() => {
       create(ownVersion(), argv.slice(argv.indexOf('create') + 1))
