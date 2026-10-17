@@ -1,7 +1,7 @@
 /// <reference path="../zodiac-os-codegen.d.ts" />
 import fs from 'node:fs'
 import path from 'node:path'
-import { findProjectRoot, resolveZodiacDir } from '../paths'
+import { findProjectRoot, resolveAbisDir, resolveZodiacDir } from '../paths'
 import { buildAllowKit } from './runtime'
 
 const CONTRACTS_FILE = 'contracts.json'
@@ -23,6 +23,20 @@ export const writeContractsManifest = (
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
 }
+
+/**
+ * Records the contracts of a project's config for its `allow` kit: their
+ * ABIs, fetched by `zodiac pull-contracts`, sit in its ABIs directory.
+ */
+export const recordContracts = (config: {
+  rootDir: string
+  abisDir?: string
+  contracts?: Record<string, any>
+}) =>
+  writeContractsManifest(config.rootDir, {
+    abisDir: path.relative(config.rootDir, resolveAbisDir(config)) || '.',
+    contracts: config.contracts ?? {},
+  })
 
 const loadKit = (): Record<string, any> => {
   const rootDir = findProjectRoot()

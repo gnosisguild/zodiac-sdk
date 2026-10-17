@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 /**
  * Resolve the project's `.zodiac/` directory — the shared home for SDK
@@ -44,4 +44,20 @@ export function findProjectRoot(): string {
     dir = dirname(dir)
   }
   return process.cwd()
+}
+
+export const DEFAULT_ABIS_DIR = 'abis'
+
+/**
+ * Resolves the absolute path to the ABIs directory. Only `rootDir` (and
+ * optionally `abisDir`) are read, so the parameter is intentionally narrower
+ * than `ResolvedConfig`: userland code can pass `{ ...config, rootDir }`
+ * without first satisfying `apiKey` (normally supplied via the
+ * `ZODIAC_API_KEY` env var at runtime).
+ */
+export function resolveAbisDir(config: {
+  rootDir: string
+  abisDir?: string
+}): string {
+  return resolve(config.rootDir, config.abisDir ?? DEFAULT_ABIS_DIR)
 }

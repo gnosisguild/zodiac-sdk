@@ -176,6 +176,51 @@ describe('pushEntrypoint', () => {
     )
   })
 
+  it("builds the entrypoint's allow kit from the config, before any pull", async () => {
+    mockSpecify.mockReturnValue([])
+
+    const { entrypoint, config } = createProject()
+    const root = join(config, '..')
+    const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+
+    writeFileSync(
+      config,
+      `export default { contracts: { eth: { weth: '${weth}' } } }\n`
+    )
+    mkdirSync(join(root, 'abis', 'eth'), { recursive: true })
+    writeFileSync(
+      join(root, 'abis', 'eth', 'weth.json'),
+      JSON.stringify([
+        {
+          type: 'function',
+          name: 'deposit',
+          inputs: [],
+          outputs: [],
+          stateMutability: 'payable',
+        },
+      ])
+    )
+    writeFileSync(
+      entrypoint,
+      [
+        `import { allow } from ${JSON.stringify(join(import.meta.dir, '..', '..', 'allow', 'project'))}`,
+        'export const deposit = allow.eth.weth.deposit()',
+        '',
+      ].join('\n')
+    )
+
+    const log = spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      await pushEntrypoint({ entrypoint, config, dryRun: true })
+    } finally {
+      log.mockRestore()
+    }
+
+    expect(mockSpecify).toHaveBeenCalledWith({
+      deposit: expect.objectContaining({ targetAddress: weth }),
+    })
+  })
+
   it('prints what it would push without an API key on a dry run', async () => {
     mockSpecify.mockReturnValue([{ label: 'Ops', specification: [] }])
 

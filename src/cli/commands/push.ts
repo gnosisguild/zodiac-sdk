@@ -1,6 +1,7 @@
 import { dirname, resolve } from 'node:path'
 import { config as loadDotenv } from 'dotenv'
 import open from 'open'
+import { recordContracts } from '../../allow/project'
 import { ConstellationRejectedError, push, specify } from '../../push'
 import { loadConfig, loadProjectConfig } from '../config'
 import { loadModule } from '../loadModule'
@@ -38,12 +39,16 @@ export const pushEntrypoint = async ({
   source,
   dryRun = false,
 }: PushEntrypointOptions = {}) => {
-  const { rootDir } = await loadProjectConfig(configPath)
+  const projectConfig = await loadProjectConfig(configPath)
+  const { rootDir } = projectConfig
   // Before the entrypoint, which may read it as it loads.
   loadDotenv({ path: resolve(rootDir, '.env'), quiet: true })
   // So the entrypoint's `allow` and `constellation()` read the `.zodiac/` of
   // this config, also when `--config` names one outside the working directory.
   process.env.ZODIAC_PROJECT_ROOT = rootDir
+  // From the config as it is now, so `allow` knows every contract it lists,
+  // pulled since or not: a fresh clone has no `.zodiac/`, but has the ABIs.
+  recordContracts(projectConfig)
   const entrypointPath =
     entrypoint == null
       ? resolve(rootDir, DEFAULT_ENTRYPOINT)

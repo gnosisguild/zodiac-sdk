@@ -7,7 +7,7 @@ import { abiFilePath, walkContracts, writeAbi } from '../../allow/abi'
 import { fetchAbi } from '../../allow/fetch'
 import { chainIdFor } from '../../allow/networks'
 import { generateAllowTypes, writeGenerated } from '../../allow/codegen'
-import { writeContractsManifest } from '../../allow/project'
+import { recordContracts } from '../../allow/project'
 
 type Status = 'ok' | 'fetched' | 'missing'
 
@@ -26,12 +26,7 @@ export const pullContracts = async (
   if (!config.contracts || Object.keys(config.contracts).length === 0) {
     console.log('No contracts defined in config, skipping.')
     // Contracts pulled before are gone from the config, so from `allow` too.
-    if (module == null) {
-      writeContractsManifest(config.rootDir, {
-        abisDir: path.relative(config.rootDir, resolveAbisDir(config)) || '.',
-        contracts: {},
-      })
-    }
+    if (module == null) recordContracts(config)
     return
   }
 
@@ -109,12 +104,7 @@ export const pullContracts = async (
 
   // What `allow` from `@zodiaceco/sdk` is built from. A module of typings is
   // for code that builds its own kit.
-  if (module == null) {
-    writeContractsManifest(config.rootDir, {
-      abisDir: path.relative(config.rootDir, abisDir) || '.',
-      contracts: config.contracts,
-    })
-  }
+  if (module == null) recordContracts(config)
 
   if (missing > 0) process.exit(1)
 }
