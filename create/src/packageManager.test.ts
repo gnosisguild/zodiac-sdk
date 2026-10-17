@@ -11,7 +11,7 @@ describe('detectPackageManager', () => {
   })
 
   it('falls back to npm', () => {
-    expect(detectPackageManager(undefined)).toBe('npm')
+    expect(detectPackageManager('')).toBe('npm')
     expect(detectPackageManager('deno/2.5.0')).toBe('npm')
   })
 })
