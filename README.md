@@ -2,6 +2,16 @@
 
 Programmatically manage [Zodiac](https://www.zodiac.eco) account constellations.
 
+## Start a new project
+
+```bash
+npm create @zodiaceco@latest my-org
+```
+
+This sets up a constellation project in `my-org` from the [template](./create/templates/constellation): an example on Ethereum to start from, its dependencies installed, and, if you like, connected to your Zodiac org. `pnpm create @zodiaceco`, `bunx @zodiaceco/create` and `zodiac create` work the same. See [`@zodiaceco/create`](./create) for its options.
+
+To add the SDK to a project you already have, read on.
+
 ## Getting started
 
 ### 1. Install
@@ -378,6 +388,7 @@ Options:
   -h, --help           display help for command
 
 Commands:
+  create [directory]   Start a constellation project, like `npm create @zodiaceco`
   init                 Authorize this directory with a Zodiac org. Opens a browser to mint an API key and writes it to .env.
   pull-org             Fetch Zodiac users and accounts, generate TypeScript types
   pull-contracts       Fetch contract ABIs, generate typed permissions kit. Needs no API key (--module <file> to export the types instead of augmenting the global AllowKit)

@@ -20,6 +20,15 @@ jobs:
         run: bun check:format
       - name: Build package
         run: bun run build
+      - name: Install dependencies of @zodiaceco/create
+        run: bun install --frozen-lockfile
+        working-directory: create
+      - name: Check types of @zodiaceco/create
+        run: bun run check:types
+        working-directory: create
+      - name: Build @zodiaceco/create
+        run: bun run build
+        working-directory: create
 
   tests:
     runs-on: ubuntu-latest
@@ -36,11 +45,17 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Run tests
         run: bun run test
+      - name: Install dependencies of @zodiaceco/create
+        run: bun install --frozen-lockfile
+        working-directory: create
+      - name: Run tests of @zodiaceco/create
+        run: bun run test
+        working-directory: create
 
   runtimes:
     # The CLI loads a project's TypeScript files itself, so check it runs a
-    # project made from the template under each runtime, installed from a
-    # packed release.
+    # project @zodiaceco/create makes under each runtime, with the SDK
+    # installed from a packed release.
     strategy:
       fail-fast: false
       matrix:
@@ -59,5 +74,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Pack the SDK
         run: bun run build && npm pack --pack-destination "$RUNNER_TEMP"
-      - name: Run a project made from the template
+      - name: Build @zodiaceco/create
+        run: bun install --frozen-lockfile && bun run build
+        working-directory: create
+      - name: Run a project @zodiaceco/create makes
         run: scripts/check-runtime.sh ${{ startsWith(matrix.runtime, 'node-') && 'node' || 'bun' }} "$RUNNER_TEMP"/zodiaceco-sdk-*.tgz

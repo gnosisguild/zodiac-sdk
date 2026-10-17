@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Runs the CLI on a project made from the constellation template, under one
-# runtime and from a packed SDK the way a project installs it: pull the
-# contracts, type-check, and compare what a push would send with the snapshot.
+# Makes a project with @zodiaceco/create (built: `bun run build` in create/)
+# and runs the CLI on it under one runtime, with the SDK installed from a
+# packed release: pull the contracts, type-check, and compare what a push
+# would send with the snapshot.
 #
 #   scripts/check-runtime.sh <node|bun> <packed .tgz> [--update]
 #
@@ -9,18 +10,25 @@
 set -euo pipefail
 
 runtime=$1
+case $runtime in
+  node | bun) ;;
+  *)
+    echo "unknown runtime: $runtime" >&2
+    exit 1
+    ;;
+esac
 tarball=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 update=${3:-}
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-snapshot=$root/templates/constellation.specification.json
+snapshot=$root/test/constellation-template.specification.json
 
-project=$(mktemp -d)
-trap 'rm -rf "$project"' EXIT
-cp -R "$root/templates/constellation/." "$project"
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
+project=$workdir/project
+
+$runtime "$root/create/dist/index.mjs" "$project" --yes --no-install --no-git
 cd "$project"
-# npm leaves a package's `.gitignore` out, so the template keeps it as this.
-mv _gitignore .gitignore
 
 case $runtime in
   node)
@@ -34,10 +42,6 @@ case $runtime in
     # `--bun`, or the CLI's `node` shebang has Node run it.
     zodiac() { bun run --bun zodiac "$@"; }
     tsc() { bun run --bun tsc "$@"; }
-    ;;
-  *)
-    echo "unknown runtime: $runtime" >&2
-    exit 1
     ;;
 esac
 

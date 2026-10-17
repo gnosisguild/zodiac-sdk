@@ -1,6 +1,7 @@
 import { Command } from 'commander'
 import { config as loadDotenv } from 'dotenv'
 import { checkForUpdate, ownVersion } from './checkForUpdate'
+import { create } from './commands/create'
 import { init } from './commands/init'
 import { loadConfig, loadProjectConfig } from './config'
 import { pullOrg } from './commands/pullOrg'
@@ -125,6 +126,19 @@ export const run = async (argv: string[] = process.argv) => {
         })
       }
     )
+
+  program
+    .command('create')
+    .description(
+      'Start a constellation project, like `npm create @zodiaceco` (`zodiac create --help` for its options)'
+    )
+    .argument('[directory]', 'where the project goes')
+    // Everything after `create` is for `@zodiaceco/create`, `--help` included.
+    .allowUnknownOption()
+    .helpOption(false)
+    .action(() => {
+      create(ownVersion(), argv.slice(argv.indexOf('create') + 1))
+    })
 
   program
     .command('init')

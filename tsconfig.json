@@ -65,6 +65,6 @@
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */
   },
-  // Templates import the SDK as a project does, from a packed release.
-  "exclude": ["node_modules", "dist", "templates"]
+  // A package of its own, with its own tsconfig.
+  "exclude": ["node_modules", "dist", "create"]
 }
