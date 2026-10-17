@@ -3,11 +3,11 @@
   "version": "2.7.0",
   "author": "Zodiac Labs GmbH",
   "license": "LGPL-3.0-only",
-  "homepage": "https://github.com/gnosisguild/zodiac-sdk",
+  "homepage": "https://github.com/zodiaceco/zodiac-sdk",
   "packageManager": "bun@1.3.12",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gnosisguild/zodiac-sdk.git"
+    "url": "git+https://github.com/zodiaceco/zodiac-sdk.git"
   },
   "type": "module",
   "engines": {
